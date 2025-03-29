@@ -3,52 +3,75 @@ from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from pymongo import MongoClient
 from datetime import date
+import uuid
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
 db = client["sports_db"]
-collection = db["Students"]
-
-# Function to open admin panel
-def open_admin_panel():
-    messagebox.showinfo("Admin Panel", "Admin Panel Coming Soon!")
-
-# Function to open records page
-def open_records():
-    messagebox.showinfo("Records", "Records Page Coming Soon!")
+students_collection = db["students"]
+booking_collection = db["booking"]
 
 # Function to update return date min limit
 def update_return_date(*args):
     return_date.config(mindate=issue_date.get_date())
 
+# Function to reset form fields after booking
+def reset_fields():
+    name_entry.delete(0, tk.END)
+    email_entry.delete(0, tk.END)
+    mobile_entry.delete(0, tk.END)
+    reg_entry.delete(0, tk.END)
+    branch_var.set("")
+    year_var.set("")
+    sports_var.set("")
+    issue_date.set_date(today)  # Reset to today's date
+    return_date.set_date(today)  # Reset to today's date
+
 # Function to submit data
 def book_equipment():
     issue_dt = issue_date.get_date()
     return_dt = return_date.get_date()
-
+    
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
         return
-
+    
     student_data = {
         "name": name_entry.get(),
         "email": email_entry.get(),
         "mobile": mobile_entry.get(),
         "reg_no": reg_entry.get(),
         "branch": branch_var.get(),
-        "year": year_var.get(),
-        "sports": sports_var.get(),
-        "issue_date": issue_dt.strftime("%Y-%m-%d"),
-        "return_date": return_dt.strftime("%Y-%m-%d")
+        "year": year_var.get()
     }
     
-    if "" in student_data.values():
+    booking_data = {
+        "booking_id": str(uuid.uuid4()),
+        "name": name_entry.get(),
+        "reg_no": reg_entry.get(),
+        "sports": sports_var.get(),
+        "issue_date": issue_dt.strftime("%Y-%m-%d"),
+        "return_date": return_dt.strftime("%Y-%m-%d"),
+        "returned": False
+    }
+    
+    if "" in student_data.values() or booking_data["sports"] == "":
         messagebox.showerror("Error", "All fields are required!")
         return
     
-    collection.insert_one(student_data)
+    students_collection.update_one({"reg_no": student_data["reg_no"]}, {"$set": student_data}, upsert=True)
+    booking_collection.insert_one(booking_data)
+    
     messagebox.showinfo("Success", "Booking Registered Successfully!")
-    root.destroy()
+    reset_fields()  # Clear all fields after booking
+
+# Function to open admin panel (Placeholder)
+def open_admin_panel():
+    messagebox.showinfo("Admin Panel", "Admin Panel Coming Soon!")
+
+# Function to open records page (Placeholder)
+def open_records():
+    messagebox.showinfo("Records", "Records Page Coming Soon!")
 
 # GUI Window
 root = tk.Tk()
