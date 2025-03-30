@@ -6,7 +6,24 @@ from pymongo import MongoClient
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
 db = client["sports_db"]
 inventory = db["Inventory"]         # Table 1: Inventory
-bookings = db["booking"]           # Table 2: Current Bookings
+bookings = db["booking"]            # Table 2: Current Bookings
+
+# Function to remove duplicate equipment from the inventory table
+def remove_duplicates():
+    seen = set()
+    duplicates = []
+
+    for item in inventory.find():
+        name = item.get("name")
+        if name in seen:
+            duplicates.append(item["_id"])
+        else:
+            seen.add(name)
+
+    # Remove duplicate entries
+    if duplicates:
+        inventory.delete_many({"_id": {"$in": duplicates}})
+        print(f"Removed {len(duplicates)} duplicate equipment entries.")
 
 # Pre-populate Inventory with all sports equipment
 def initialize_inventory():
@@ -17,23 +34,14 @@ def initialize_inventory():
     ]
     
     # Add equipment to inventory only if it doesn't exist
-    for idx, sport in enumerate(equipment_list, start=1):
-        equipment_id = f"E{idx}"  # Simpler Equipment ID
-        if not inventory.find_one({"_id": equipment_id}):
+    for sport in equipment_list:
+        if not inventory.find_one({"name": sport}):  # Check for existing equipment by name
+            equipment_id = f"E{equipment_list.index(sport) + 1}"  # Simpler Equipment ID
             inventory.insert_one({
                 "_id": equipment_id,
                 "name": sport,
                 "count": 10  # Initial count set to 10
             })
-
-# Function to generate a new Booking ID (B1, B2, ...)
-def generate_booking_id():
-    last_booking = bookings.find_one(sort=[("_id", -1)])
-    
-    if last_booking and "_id" in last_booking and last_booking["_id"].startswith("B"):
-        last_id = int(last_booking["_id"][1:])  # Extract the numeric part
-        return f"B{last_id + 1}"
-    return "B1"
 
 # Function to load inventory data into the table
 def load_inventory():
@@ -43,18 +51,17 @@ def load_inventory():
     for item in inventory.find().sort("_id"):
         inventory_tree.insert("", "end", values=(item["_id"], item["name"], item["count"]))
 
-# Function to load current bookings into the table
+# Function to load only "Pending" bookings into the table
 def load_bookings():
     for row in bookings_tree.get_children():
         bookings_tree.delete(row)
 
-    # Get all bookings and sort them by creation time (assuming _id has timestamp)
-    all_bookings = list(bookings.find().sort("_id", 1))
+    # Load only "Pending" bookings
+    pending_bookings = list(bookings.find({"status": "Pending"}).sort("_id", 1))
     
-    # Display them with sequential B1, B2, etc. IDs regardless of actual DB ID
-    for idx, booking in enumerate(all_bookings, start=1):
+    for idx, booking in enumerate(pending_bookings, start=1):
         bookings_tree.insert("", "end", values=(
-            f"B{idx}",  # Display sequential booking ID
+            f"B{idx}", 
             booking.get("name"),
             booking.get("reg_no"),
             booking.get("sports", "N/A"),
@@ -62,8 +69,7 @@ def load_bookings():
             booking.get("return_date", "N/A")
         ))
 
-# Function to return equipment
-# Function to return equipment (GUI-only removal)
+# Function to mark the booking as "Returned" in MongoDB and remove it from GUI
 def return_equipment():
     selected_item = bookings_tree.selection()
 
@@ -73,14 +79,19 @@ def return_equipment():
 
     # Get the selected booking details from the treeview
     selected_values = bookings_tree.item(selected_item, "values")
-    displayed_booking_id = selected_values[0]  # This is the "B1", "B2" displayed ID
-    equipment_name = selected_values[3]  # Equipment Name
+    displayed_booking_id = selected_values[0]  # Displayed ID (B1, B2, etc.)
+    equipment_name = selected_values[3]         # Equipment name
 
-    # Simply remove the item from the Treeview (GUI)
+    # Update the status of the booking to "Returned" in MongoDB
+    bookings.update_one(
+        {"name": selected_values[1], "sports": equipment_name, "status": "Pending"},
+        {"$set": {"status": "Returned"}}
+    )
+
+    # Remove the selected booking from the TreeView (GUI)
     bookings_tree.delete(selected_item)
-    
-    # Show success message (without actually modifying MongoDB)
-    messagebox.showinfo("Success", f"Booking {displayed_booking_id} returned ")
+
+    messagebox.showinfo("Success", f"Booking {displayed_booking_id} returned!")
 
 # Admin Panel Window
 admin_root = tk.Tk()
@@ -105,7 +116,7 @@ inventory_tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 inventory_tree.bind('<<TreeviewSelect>>', lambda e: inventory_tree.selection_remove(inventory_tree.selection()))
 
 # Current Bookings Table (Table 2)
-bookings_label = tk.Label(frame, text="Current Bookings", font=("Arial", 14, "bold"))
+bookings_label = tk.Label(frame, text="Current Bookings (Pending Only)", font=("Arial", 14, "bold"))
 bookings_label.pack(pady=5)
 
 bookings_tree = ttk.Treeview(frame, 
@@ -136,10 +147,17 @@ bookings_tree.column("Return Date", width=120, anchor=tk.CENTER)
 return_button = tk.Button(admin_root, text="Return Equipment", command=return_equipment, 
                          bg="red", fg="white", font=("Arial", 12, "bold"),
                          padx=20, pady=10)
-return_button.pack(pady=20)
+return_button.pack(pady=10)
 
-# Initialize inventory and load data into tables
+# Reload Bookings Button (to refresh the table)
+reload_button = tk.Button(admin_root, text="Reload Bookings", command=load_bookings, 
+                          bg="blue", fg="white", font=("Arial", 12, "bold"),
+                          padx=20, pady=10)
+reload_button.pack(pady=10)
+
+# Initialize inventory, remove duplicates, and load data into tables
 initialize_inventory()
+remove_duplicates()
 load_inventory()
 load_bookings()
 
