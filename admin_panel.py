@@ -8,6 +8,16 @@ db = client["sports_db"]
 inventory = db["Inventory"]         # Table 1: Inventory
 bookings = db["booking"]            # Table 2: Current Bookings
 
+# Function to update inventory count when equipment is returned
+def update_inventory_on_return(equipment_name, change=1):
+    """Update inventory count when equipment is returned (increase by 1)"""
+    inventory = db["Inventory"]
+    result = inventory.update_one(
+        {"name": equipment_name},
+        {"$inc": {"count": change}}
+    )
+    return result.modified_count > 0
+
 # Function to remove duplicate equipment from the inventory table
 def remove_duplicates():
     seen = set()
@@ -82,16 +92,22 @@ def return_equipment():
     displayed_booking_id = selected_values[0]  # Displayed ID (B1, B2, etc.)
     equipment_name = selected_values[3]         # Equipment name
 
-    # Update the status of the booking to "Returned" in MongoDB
+    # First update inventory
+    if not update_inventory_on_return(equipment_name):
+        messagebox.showerror("Error", "Failed to update inventory count!")
+        return
+    
+    # Then update booking status
     bookings.update_one(
         {"name": selected_values[1], "sports": equipment_name, "status": "Pending"},
         {"$set": {"status": "Returned"}}
     )
-
-    # Remove the selected booking from the TreeView (GUI)
+    
+    # Refresh both tables
     bookings_tree.delete(selected_item)
-
-    messagebox.showinfo("Success", f"Booking {displayed_booking_id} returned!")
+    load_inventory()  # Refresh inventory to show updated count
+    
+    messagebox.showinfo("Success", f"Equipment returned and inventory updated!")
 
 # Admin Panel Window
 admin_root = tk.Tk()

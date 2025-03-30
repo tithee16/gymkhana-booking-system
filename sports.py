@@ -10,6 +10,22 @@ client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/"
 db = client["sports_db"]
 collection = db["booking"]
 
+# Function to update inventory count when equipment is booked
+def update_inventory_on_booking(sport_name, change=-1):
+    """Update inventory count when equipment is booked (decrease by 1)"""
+    inventory = db["Inventory"]
+    result = inventory.update_one(
+        {"name": sport_name},
+        {"$inc": {"count": change}}
+    )
+    return result.modified_count > 0
+
+# Function to check inventory availability
+def check_inventory_availability(sport_name):
+    """Check if equipment is available in inventory"""
+    item = db["Inventory"].find_one({"name": sport_name})
+    return item and item.get("count", 0) > 0
+
 # Function to update return date min limit
 def update_return_date(*args):
     return_date.config(mindate=issue_date.get_date())
@@ -32,9 +48,15 @@ def book_equipment():
     return_dt = return_date.get_date()
     
     reg_no = reg_entry.get()  # Student Registration Number
+    sport_name = sports_var.get()
 
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
+        return
+
+    # Check inventory availability
+    if not check_inventory_availability(sport_name):
+        messagebox.showerror("Error", "This equipment is currently out of stock!")
         return
 
     # Check if student already has a pending booking
@@ -56,7 +78,7 @@ def book_equipment():
         "reg_no": reg_no,
         "branch": branch_var.get(),
         "year": year_var.get(),
-        "sports": sports_var.get(),
+        "sports": sport_name,
         "issue_date": issue_dt.strftime("%Y-%m-%d"),
         "return_date": return_dt.strftime("%Y-%m-%d"),
         "status": "Pending"  # Default return status
@@ -67,12 +89,16 @@ def book_equipment():
         return
     
     collection.insert_one(student_data)
+    
+    # Update inventory count
+    if not update_inventory_on_booking(sport_name):
+        messagebox.showerror("Error", "Failed to update inventory count!")
+        return
+    
     messagebox.showinfo("Success", "Booking Registered Successfully!")
+    reset_fields()
 
-    reset_fields()  # Clear all fields after booking
-
-
-# Function to open admin panel (Placeholder)
+# Function to open admin panel
 def open_admin_panel():
     try:
         subprocess.Popen(['python', 'admin_panel.py'])
