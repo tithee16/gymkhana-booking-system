@@ -9,9 +9,12 @@ import subprocess
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
 db = client["sports_db"]
 collection = db["booking"]
-counter_collection = db["counters"]  # For maintaining unique IDs
+counter_collection = db["counters"]
 
-# Function to get next booking ID
+# Initialize counter if not exists
+if not counter_collection.find_one({"_id": "booking_id"}):
+    counter_collection.insert_one({"_id": "booking_id", "sequence_value": 0})
+
 def get_next_booking_id():
     counter = counter_collection.find_one_and_update(
         {"_id": "booking_id"},
@@ -21,7 +24,6 @@ def get_next_booking_id():
     )
     return f"B{counter['sequence_value']}"
 
-# Function to update inventory count when equipment is booked
 def update_inventory_on_booking(sport_name, change=-1):
     inventory = db["Inventory"]
     result = inventory.update_one(
@@ -72,7 +74,6 @@ def book_equipment():
         messagebox.showerror("Error", "This registration number is already in use!")
         return
 
-    # Generate unique booking ID
     booking_id = get_next_booking_id()
     
     student_data = {
@@ -114,48 +115,60 @@ def open_records_page():
     except Exception as e:
         messagebox.showerror("Error", f"Failed to open records: {str(e)}")
 
-# Initialize counter if not exists
-if not counter_collection.find_one({"_id": "booking_id"}):
-    counter_collection.insert_one({"_id": "booking_id", "sequence_value": 0})
-
-# GUI Window
+# Main Window Setup
 root = tk.Tk()
 root.title("Sports Equipment Booking System")
-root.geometry("500x750")  # Adjusted window size
+root.geometry("600x750")  # Adjusted window size
+root.resizable(True, True)  # Disable resizing
 
-# Configure font sizes
-LARGE_FONT = ("Arial", 12)
-HEADING_FONT = ("Arial", 16, "bold")
-BUTTON_FONT = ("Arial", 14, "bold")
+# Color Scheme
+BG_COLOR = "#f0f2f5"
+HEADER_COLOR = "#2c3e50"
+ACCENT_COLOR = "#3498db"
+BUTTON_COLOR = "#2980b9"
+SUCCESS_COLOR = "#27ae60"
+ERROR_COLOR = "#e74c3c"
+TEXT_COLOR = "#2c3e50"
+ENTRY_BG = "#ffffff"
 
-# Main container with equal padding
-main_container = tk.Frame(root, padx=40)
-main_container.pack(expand=True, fill=tk.BOTH, pady=20)
+# Font Configuration
+SMALL_FONT = ("Segoe UI", 10)
+MEDIUM_FONT = ("Segoe UI", 11, "bold")
+HEADING_FONT = ("Segoe UI", 16, "bold")
+BUTTON_FONT = ("Segoe UI", 12, "bold")
 
-# ========= LEFT SIDE: FORM FIELDS =========
-left_frame = tk.Frame(main_container)
-left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+# Configure root background
+root.configure(bg=BG_COLOR)
 
-# ========= STUDENT INFORMATION SECTION =========
-student_info_frame = tk.Frame(left_frame)
-student_info_frame.pack(fill=tk.X, pady=(0, 20))
+# Header Frame
+header_frame = tk.Frame(root, bg=HEADER_COLOR, height=80)
+header_frame.pack(fill=tk.X)
 
-# Student Information Heading with increased spacing
-tk.Label(student_info_frame, text="Student Information", font=HEADING_FONT).pack(anchor='w', pady=(0, 20))
+tk.Label(header_frame, text="SPORTS EQUIPMENT BOOKING", font=("Segoe UI", 18, "bold"), 
+         bg=HEADER_COLOR, fg="white").pack(side=tk.LEFT, padx=20)
 
-# Form Fields (2-column layout)
-form_frame = tk.Frame(student_info_frame)
-form_frame.pack(fill=tk.X)
+# Main Container
+main_container = tk.Frame(root, padx=20, pady=20, bg=BG_COLOR)
+main_container.pack(expand=True, fill=tk.BOTH)
 
-# Left Column - Labels
-label_frame = tk.Frame(form_frame)
-label_frame.pack(side=tk.LEFT)
+# Form Container with card-like appearance
+form_card = tk.Frame(main_container, bg="white", bd=2, relief=tk.RAISED, 
+                    highlightbackground="#dfe6e9", highlightthickness=1)
+form_card.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-# Right Column - Entry Fields
-entry_frame = tk.Frame(form_frame)
-entry_frame.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+# ========= FORM SECTION =========
+form_frame = tk.Frame(form_card, padx=15, pady=15, bg="white")
+form_frame.pack(fill=tk.BOTH, expand=True)
 
-# Create label-entry pairs with increased spacing
+# Student Information Heading
+tk.Label(form_frame, text="Student Information", font=HEADING_FONT, 
+         bg="white", fg=TEXT_COLOR).pack(anchor='w', pady=(0, 15))
+
+# Form Fields Grid
+fields_frame = tk.Frame(form_frame, bg="white")
+fields_frame.pack(fill=tk.X)
+
+# Create form fields with consistent styling
 fields = [
     ("Name:", "name_entry"),
     ("Email ID:", "email_entry"),
@@ -163,13 +176,19 @@ fields = [
     ("Registration No:", "reg_entry")
 ]
 
-for text, var_name in fields:
-    tk.Label(label_frame, text=text, anchor='e', width=15, font=LARGE_FONT).pack(pady=10, anchor='e')
-    entry = tk.Entry(entry_frame, width=30, font=LARGE_FONT)
-    entry.pack(pady=10, anchor='w')
+for i, (text, var_name) in enumerate(fields):
+    row_frame = tk.Frame(fields_frame, bg="white")
+    row_frame.grid(row=i, column=0, sticky='ew', pady=5)
+    
+    tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
+             bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+    
+    entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
+                    bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1)
+    entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
-# Dropdown Fields with increased spacing
+# Dropdown Fields with consistent styling
 dropdowns = [
     ("Branch:", "branch_var", ["CS", "IT", "ExTC", "Electronics", "Electrical", 
      "Mechanical", "Civil", "Production", "Textile", "Chemical", "MCA", "Masters"]),
@@ -179,65 +198,93 @@ dropdowns = [
      "Table Tennis Racket", "Table Tennis Ball", "Carrom Striker", "Chess"])
 ]
 
-for text, var_name, values in dropdowns:
-    tk.Label(label_frame, text=text, anchor='e', width=15, font=LARGE_FONT).pack(pady=10, anchor='e')
+for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
+    row_frame = tk.Frame(fields_frame, bg="white")
+    row_frame.grid(row=i, column=0, sticky='ew', pady=5)
+    
+    tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
+             bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+    
     var = tk.StringVar()
-    combobox = ttk.Combobox(entry_frame, textvariable=var, values=values, width=27, font=LARGE_FONT)
-    combobox.pack(pady=10, anchor='w')
+    combobox = ttk.Combobox(row_frame, textvariable=var, values=values, 
+                           font=SMALL_FONT, width=27, state="readonly")
+    combobox.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure('TCombobox', fieldbackground=ENTRY_BG, background=ENTRY_BG)
     globals()[var_name] = var
 
-# ========= DATE SELECTION SECTION =========
-dates_frame = tk.Frame(left_frame)
-dates_frame.pack(fill=tk.X, pady=20)
+# Date Selection with improved styling
+dates_frame = tk.Frame(form_frame, bg="white")
+dates_frame.pack(fill=tk.X, pady=(15, 0))
 
-# Date Fields Heading with increased spacing
-tk.Label(dates_frame, text="Booking Dates", font=HEADING_FONT).pack(anchor='w', pady=(0, 20))
+tk.Label(dates_frame, text="Booking Dates", font=HEADING_FONT, 
+         bg="white", fg=TEXT_COLOR).pack(anchor='w', pady=(0, 15))
 
-# Date selection fields
-date_selection_frame = tk.Frame(dates_frame)
+date_selection_frame = tk.Frame(dates_frame, bg="white")
 date_selection_frame.pack(fill=tk.X)
 
 today = date.today()
 
-tk.Label(date_selection_frame, text="Issue Date:", width=15, anchor='e', font=LARGE_FONT).pack(side=tk.LEFT, padx=5)
-issue_date = DateEntry(date_selection_frame, width=12, background="darkblue", foreground="white", 
-                      borderwidth=2, mindate=today, font=LARGE_FONT)
-issue_date.pack(side=tk.LEFT, padx=5)
+# Issue Date
+issue_date_frame = tk.Frame(date_selection_frame, bg="white")
+issue_date_frame.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-tk.Label(date_selection_frame, text="Return Date:", width=15, anchor='e', font=LARGE_FONT).pack(side=tk.LEFT, padx=5)
-return_date = DateEntry(date_selection_frame, width=12, background="darkblue", foreground="white", 
-                       borderwidth=2, mindate=today, font=LARGE_FONT)
-return_date.pack(side=tk.LEFT, padx=5)
+tk.Label(issue_date_frame, text="Issue Date:", font=MEDIUM_FONT, 
+         bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+
+issue_date = DateEntry(issue_date_frame, width=12, background=ACCENT_COLOR, 
+                      foreground="white", borderwidth=2, mindate=today, 
+                      font=SMALL_FONT, date_pattern='yyyy-mm-dd')
+issue_date.pack(side=tk.LEFT, padx=5)  # Changed to LEFT to bring it closer
+
+# Return Date
+return_date_frame = tk.Frame(date_selection_frame, bg="white")
+return_date_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
+
+tk.Label(return_date_frame, text="Return Date:", font=MEDIUM_FONT, 
+         bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+
+return_date = DateEntry(return_date_frame, width=12, background=ACCENT_COLOR, 
+                       foreground="white", borderwidth=2, mindate=today, 
+                       font=SMALL_FONT, date_pattern='yyyy-mm-dd')
+return_date.pack(side=tk.LEFT, padx=5)  # Changed to LEFT to bring it closer
 
 issue_date.bind("<<DateEntrySelected>>", update_return_date)
 
-# BOOK Button aligned just below date fields
-book_button_frame = tk.Frame(left_frame)
-book_button_frame.pack(fill=tk.X, pady=(10, 20))
+# Button Container (moved upwards)
+button_container = tk.Frame(main_container, bg=BG_COLOR, pady=10)  # Reduced pady to bring it up
+button_container.pack(fill=tk.X)
 
-book_button = tk.Button(book_button_frame, text="BOOK", command=book_equipment, 
-                       bg="green", fg="white", font=BUTTON_FONT,
-                       width=15, pady=8)
-book_button.pack()
+# BOOK Button
+book_button = tk.Button(button_container, text="BOOK EQUIPMENT", command=book_equipment, 
+                       bg=SUCCESS_COLOR, fg="white", font=BUTTON_FONT,
+                       width=20, pady=8, relief=tk.FLAT, bd=0,
+                       activebackground="#2ecc71", activeforeground="white")
+book_button.pack(pady=10)
 
-# ========= RIGHT SIDE: ACTION BUTTONS =========
-right_frame = tk.Frame(main_container)
-right_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20)
+# ========= ACTION BUTTONS ========= (enlarged and moved upwards)
+action_buttons_frame = tk.Frame(main_container, bg=BG_COLOR, pady=5)  # Reduced pady to bring it up
+action_buttons_frame.pack(fill=tk.X)
 
-# Vertical buttons container
-buttons_frame = tk.Frame(right_frame)
-buttons_frame.pack(pady=20)
+# Admin Button (enlarged)
+admin_button = tk.Button(action_buttons_frame, text="ADMIN PANEL", command=open_admin_panel, 
+                        bg=BUTTON_COLOR, fg="white", font=BUTTON_FONT,
+                        width=18, pady=10, relief=tk.FLAT, bd=0,  # Increased width and pady
+                        activebackground="#3498db", activeforeground="white")
+admin_button.pack(side=tk.LEFT, padx=10, expand=True)
 
-# Admin Button (stacked vertically)
-admin_button = tk.Button(buttons_frame, text="Admin Panel", command=open_admin_panel, 
-                        bg="blue", fg="white", font=BUTTON_FONT,
-                        width=15, pady=8)
-admin_button.pack(pady=10)
+# Records Button (enlarged)
+records_button = tk.Button(action_buttons_frame, text="VIEW RECORDS", command=open_records_page, 
+                          bg=BUTTON_COLOR, fg="white", font=BUTTON_FONT,
+                          width=18, pady=10, relief=tk.FLAT, bd=0,  # Increased width and pady
+                          activebackground="#3498db", activeforeground="white")
+records_button.pack(side=tk.RIGHT, padx=10, expand=True)
 
-# Records Button (stacked vertically)
-records_button = tk.Button(buttons_frame, text="Records", command=open_records_page, 
-                          bg="orange", fg="white", font=BUTTON_FONT,
-                          width=15, pady=8)
-records_button.pack(pady=10)
+# Footer
+footer_frame = tk.Frame(root, bg=HEADER_COLOR, height=40)
+footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+tk.Label(footer_frame, text="Sports Equipment Booking System © 2023", 
+         bg=HEADER_COLOR, fg="white", font=("Segoe UI", 9)).pack(pady=10)
 
 root.mainloop()
