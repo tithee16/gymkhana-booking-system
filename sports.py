@@ -3,13 +3,11 @@ from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from pymongo import MongoClient
 from datetime import date
-import uuid
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
 db = client["sports_db"]
-students_collection = db["students"]
-booking_collection = db["booking"]
+collection = db["booking"]
 
 # Function to update return date min limit
 def update_return_date(*args):
@@ -31,38 +29,30 @@ def reset_fields():
 def book_equipment():
     issue_dt = issue_date.get_date()
     return_dt = return_date.get_date()
-    
+
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
         return
-    
+
     student_data = {
         "name": name_entry.get(),
         "email": email_entry.get(),
         "mobile": mobile_entry.get(),
         "reg_no": reg_entry.get(),
         "branch": branch_var.get(),
-        "year": year_var.get()
-    }
-    
-    booking_data = {
-        "booking_id": str(uuid.uuid4()),
-        "name": name_entry.get(),
-        "reg_no": reg_entry.get(),
+        "year": year_var.get(),
         "sports": sports_var.get(),
         "issue_date": issue_dt.strftime("%Y-%m-%d"),
-        "return_date": return_dt.strftime("%Y-%m-%d"),
-        "returned": False
+        "return_date": return_dt.strftime("%Y-%m-%d")
     }
     
-    if "" in student_data.values() or booking_data["sports"] == "":
+    if "" in student_data.values():
         messagebox.showerror("Error", "All fields are required!")
         return
     
-    students_collection.update_one({"reg_no": student_data["reg_no"]}, {"$set": student_data}, upsert=True)
-    booking_collection.insert_one(booking_data)
-    
+    collection.insert_one(student_data)
     messagebox.showinfo("Success", "Booking Registered Successfully!")
+
     reset_fields()  # Clear all fields after booking
 
 # Function to open admin panel (Placeholder)
