@@ -29,21 +29,36 @@ def reset_fields():
 def book_equipment():
     issue_dt = issue_date.get_date()
     return_dt = return_date.get_date()
+    
+    reg_no = reg_entry.get()  # Student Registration Number
 
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
+        return
+
+    # Check if student already has a pending booking
+    existing_booking = collection.find_one({"reg_no": reg_no, "status": "Pending"})
+    if existing_booking:
+        messagebox.showerror("Error", "You already have a pending booking. Please return the previous equipment first.")
+        return
+
+    # Check if registration number already exists in the database
+    existing_student = db["students"].find_one({"reg_no": reg_no})
+    if existing_student:
+        messagebox.showerror("Error", "This registration number is already in use. Please check again.")
         return
 
     student_data = {
         "name": name_entry.get(),
         "email": email_entry.get(),
         "mobile": mobile_entry.get(),
-        "reg_no": reg_entry.get(),
+        "reg_no": reg_no,
         "branch": branch_var.get(),
         "year": year_var.get(),
         "sports": sports_var.get(),
         "issue_date": issue_dt.strftime("%Y-%m-%d"),
-        "return_date": return_dt.strftime("%Y-%m-%d")
+        "return_date": return_dt.strftime("%Y-%m-%d"),
+        "status": "Pending"  # Default return status
     }
     
     if "" in student_data.values():
@@ -54,6 +69,7 @@ def book_equipment():
     messagebox.showinfo("Success", "Booking Registered Successfully!")
 
     reset_fields()  # Clear all fields after booking
+
 
 # Function to open admin panel (Placeholder)
 def open_admin_panel():
