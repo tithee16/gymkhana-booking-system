@@ -121,72 +121,123 @@ if not counter_collection.find_one({"_id": "booking_id"}):
 # GUI Window
 root = tk.Tk()
 root.title("Sports Equipment Booking System")
-root.geometry("450x650")
+root.geometry("500x750")  # Adjusted window size
 
-# Admin & Records Buttons
-top_frame = tk.Frame(root)
-top_frame.pack(pady=10)
+# Configure font sizes
+LARGE_FONT = ("Arial", 12)
+HEADING_FONT = ("Arial", 16, "bold")
+BUTTON_FONT = ("Arial", 14, "bold")
 
-admin_button = tk.Button(top_frame, text="Admin Panel", command=open_admin_panel, bg="blue", fg="white", font=("Arial", 12, "bold"))
-admin_button.pack(side=tk.LEFT, padx=10)
+# Main container with equal padding
+main_container = tk.Frame(root, padx=40)
+main_container.pack(expand=True, fill=tk.BOTH, pady=20)
 
-records_button = tk.Button(top_frame, text="Records", command=open_records_page, bg="orange", fg="white", font=("Arial", 12, "bold"))
-records_button.pack(side=tk.RIGHT, padx=10)
+# ========= LEFT SIDE: FORM FIELDS =========
+left_frame = tk.Frame(main_container)
+left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-# Labels and Entry Fields
-tk.Label(root, text="Student Information", font=("Arial", 14, "bold")).pack(pady=10)
+# ========= STUDENT INFORMATION SECTION =========
+student_info_frame = tk.Frame(left_frame)
+student_info_frame.pack(fill=tk.X, pady=(0, 20))
 
-tk.Label(root, text="Name:").pack()
-name_entry = tk.Entry(root)
-name_entry.pack()
+# Student Information Heading with increased spacing
+tk.Label(student_info_frame, text="Student Information", font=HEADING_FONT).pack(anchor='w', pady=(0, 20))
 
-tk.Label(root, text="Email ID:").pack()
-email_entry = tk.Entry(root)
-email_entry.pack()
+# Form Fields (2-column layout)
+form_frame = tk.Frame(student_info_frame)
+form_frame.pack(fill=tk.X)
 
-tk.Label(root, text="Mobile No:").pack()
-mobile_entry = tk.Entry(root)
-mobile_entry.pack()
+# Left Column - Labels
+label_frame = tk.Frame(form_frame)
+label_frame.pack(side=tk.LEFT)
 
-tk.Label(root, text="Registration No:").pack()
-reg_entry = tk.Entry(root)
-reg_entry.pack()
+# Right Column - Entry Fields
+entry_frame = tk.Frame(form_frame)
+entry_frame.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
-tk.Label(root, text="Branch:").pack()
-branch_var = tk.StringVar()
-branch_dropdown = ttk.Combobox(root, textvariable=branch_var, values=[
-    "CS", "IT", "ExTC", "Electronics", "Electrical", "Mechanical", 
-    "Civil", "Production", "Textile", "Chemical", "MCA", "Masters"
-])
-branch_dropdown.pack()
+# Create label-entry pairs with increased spacing
+fields = [
+    ("Name:", "name_entry"),
+    ("Email ID:", "email_entry"),
+    ("Mobile No:", "mobile_entry"),
+    ("Registration No:", "reg_entry")
+]
 
-tk.Label(root, text="Year:").pack()
-year_var = tk.StringVar()
-year_dropdown = ttk.Combobox(root, textvariable=year_var, values=["1st", "2nd", "3rd", "4th"])
-year_dropdown.pack()
+for text, var_name in fields:
+    tk.Label(label_frame, text=text, anchor='e', width=15, font=LARGE_FONT).pack(pady=10, anchor='e')
+    entry = tk.Entry(entry_frame, width=30, font=LARGE_FONT)
+    entry.pack(pady=10, anchor='w')
+    globals()[var_name] = entry
 
-tk.Label(root, text="Select Sport:").pack()
-sports_var = tk.StringVar()
-sports_dropdown = ttk.Combobox(root, textvariable=sports_var, values=[
-    "Football", "Basketball", "Volleyball", "Throwball", "Cricket Bat",
-    "Tennis Ball", "Season Ball", "Badminton Racket", "Shuttle Cock",
-    "Table Tennis Racket", "Table Tennis Ball", "Carrom Striker", "Chess"
-])
-sports_dropdown.pack()
+# Dropdown Fields with increased spacing
+dropdowns = [
+    ("Branch:", "branch_var", ["CS", "IT", "ExTC", "Electronics", "Electrical", 
+     "Mechanical", "Civil", "Production", "Textile", "Chemical", "MCA", "Masters"]),
+    ("Year:", "year_var", ["1st", "2nd", "3rd", "4th"]),
+    ("Select Sport:", "sports_var", ["Football", "Basketball", "Volleyball", "Throwball", 
+     "Cricket Bat", "Tennis Ball", "Season Ball", "Badminton Racket", "Shuttle Cock",
+     "Table Tennis Racket", "Table Tennis Ball", "Carrom Striker", "Chess"])
+]
+
+for text, var_name, values in dropdowns:
+    tk.Label(label_frame, text=text, anchor='e', width=15, font=LARGE_FONT).pack(pady=10, anchor='e')
+    var = tk.StringVar()
+    combobox = ttk.Combobox(entry_frame, textvariable=var, values=values, width=27, font=LARGE_FONT)
+    combobox.pack(pady=10, anchor='w')
+    globals()[var_name] = var
+
+# ========= DATE SELECTION SECTION =========
+dates_frame = tk.Frame(left_frame)
+dates_frame.pack(fill=tk.X, pady=20)
+
+# Date Fields Heading with increased spacing
+tk.Label(dates_frame, text="Booking Dates", font=HEADING_FONT).pack(anchor='w', pady=(0, 20))
+
+# Date selection fields
+date_selection_frame = tk.Frame(dates_frame)
+date_selection_frame.pack(fill=tk.X)
 
 today = date.today()
 
-tk.Label(root, text="Issue Date:").pack()
-issue_date = DateEntry(root, width=12, background="darkblue", foreground="white", borderwidth=2, mindate=today)
-issue_date.pack()
- 
-tk.Label(root, text="Return Date:").pack()
-return_date = DateEntry(root, width=12, background="darkblue", foreground="white", borderwidth=2, mindate=today)
-return_date.pack()
+tk.Label(date_selection_frame, text="Issue Date:", width=15, anchor='e', font=LARGE_FONT).pack(side=tk.LEFT, padx=5)
+issue_date = DateEntry(date_selection_frame, width=12, background="darkblue", foreground="white", 
+                      borderwidth=2, mindate=today, font=LARGE_FONT)
+issue_date.pack(side=tk.LEFT, padx=5)
+
+tk.Label(date_selection_frame, text="Return Date:", width=15, anchor='e', font=LARGE_FONT).pack(side=tk.LEFT, padx=5)
+return_date = DateEntry(date_selection_frame, width=12, background="darkblue", foreground="white", 
+                       borderwidth=2, mindate=today, font=LARGE_FONT)
+return_date.pack(side=tk.LEFT, padx=5)
 
 issue_date.bind("<<DateEntrySelected>>", update_return_date)
 
-book_button = tk.Button(root, text="BOOK", command=book_equipment, bg="green", fg="white", font=("Arial", 12, "bold"))
-book_button.pack(pady=20)
+# BOOK Button aligned just below date fields
+book_button_frame = tk.Frame(left_frame)
+book_button_frame.pack(fill=tk.X, pady=(10, 20))
+
+book_button = tk.Button(book_button_frame, text="BOOK", command=book_equipment, 
+                       bg="green", fg="white", font=BUTTON_FONT,
+                       width=15, pady=8)
+book_button.pack()
+
+# ========= RIGHT SIDE: ACTION BUTTONS =========
+right_frame = tk.Frame(main_container)
+right_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20)
+
+# Vertical buttons container
+buttons_frame = tk.Frame(right_frame)
+buttons_frame.pack(pady=20)
+
+# Admin Button (stacked vertically)
+admin_button = tk.Button(buttons_frame, text="Admin Panel", command=open_admin_panel, 
+                        bg="blue", fg="white", font=BUTTON_FONT,
+                        width=15, pady=8)
+admin_button.pack(pady=10)
+
+# Records Button (stacked vertically)
+records_button = tk.Button(buttons_frame, text="Records", command=open_records_page, 
+                          bg="orange", fg="white", font=BUTTON_FONT,
+                          width=15, pady=8)
+records_button.pack(pady=10)
 
 root.mainloop()
