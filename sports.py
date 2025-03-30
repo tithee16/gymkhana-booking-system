@@ -9,10 +9,20 @@ import subprocess
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
 db = client["sports_db"]
 collection = db["booking"]
+counter_collection = db["counters"]  # For maintaining unique IDs
+
+# Function to get next booking ID
+def get_next_booking_id():
+    counter = counter_collection.find_one_and_update(
+        {"_id": "booking_id"},
+        {"$inc": {"sequence_value": 1}},
+        upsert=True,
+        return_document=True
+    )
+    return f"B{counter['sequence_value']}"
 
 # Function to update inventory count when equipment is booked
 def update_inventory_on_booking(sport_name, change=-1):
-    """Update inventory count when equipment is booked (decrease by 1)"""
     inventory = db["Inventory"]
     result = inventory.update_one(
         {"name": sport_name},
@@ -20,17 +30,13 @@ def update_inventory_on_booking(sport_name, change=-1):
     )
     return result.modified_count > 0
 
-# Function to check inventory availability
 def check_inventory_availability(sport_name):
-    """Check if equipment is available in inventory"""
     item = db["Inventory"].find_one({"name": sport_name})
     return item and item.get("count", 0) > 0
 
-# Function to update return date min limit
 def update_return_date(*args):
     return_date.config(mindate=issue_date.get_date())
 
-# Function to reset form fields after booking
 def reset_fields():
     name_entry.delete(0, tk.END)
     email_entry.delete(0, tk.END)
@@ -39,39 +45,38 @@ def reset_fields():
     branch_var.set("")
     year_var.set("")
     sports_var.set("")
-    issue_date.set_date(today)  # Reset to today's date
-    return_date.set_date(today)  # Reset to today's date
+    issue_date.set_date(today)
+    return_date.set_date(today)
 
-# Function to submit data
 def book_equipment():
     issue_dt = issue_date.get_date()
     return_dt = return_date.get_date()
-    
-    reg_no = reg_entry.get()  # Student Registration Number
+    reg_no = reg_entry.get()
     sport_name = sports_var.get()
 
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
         return
 
-    # Check inventory availability
     if not check_inventory_availability(sport_name):
         messagebox.showerror("Error", "This equipment is currently out of stock!")
         return
 
-    # Check if student already has a pending booking
     existing_booking = collection.find_one({"reg_no": reg_no, "status": "Pending"})
     if existing_booking:
-        messagebox.showerror("Error", "You already have a pending booking. Please return the previous equipment first.")
+        messagebox.showerror("Error", "You already have a pending booking!")
         return
 
-    # Check if registration number already exists in the database
     existing_student = db["students"].find_one({"reg_no": reg_no})
     if existing_student:
-        messagebox.showerror("Error", "This registration number is already in use. Please check again.")
+        messagebox.showerror("Error", "This registration number is already in use!")
         return
 
+    # Generate unique booking ID
+    booking_id = get_next_booking_id()
+    
     student_data = {
+        "booking_id": booking_id,
         "name": name_entry.get(),
         "email": email_entry.get(),
         "mobile": mobile_entry.get(),
@@ -81,7 +86,7 @@ def book_equipment():
         "sports": sport_name,
         "issue_date": issue_dt.strftime("%Y-%m-%d"),
         "return_date": return_dt.strftime("%Y-%m-%d"),
-        "status": "Pending"  # Default return status
+        "status": "Pending"
     }
     
     if "" in student_data.values():
@@ -90,15 +95,13 @@ def book_equipment():
     
     collection.insert_one(student_data)
     
-    # Update inventory count
     if not update_inventory_on_booking(sport_name):
         messagebox.showerror("Error", "Failed to update inventory count!")
         return
     
-    messagebox.showinfo("Success", "Booking Registered Successfully!")
+    messagebox.showinfo("Success", f"Booking Registered Successfully! Your Booking ID: {booking_id}")
     reset_fields()
 
-# Function to open admin panel
 def open_admin_panel():
     try:
         subprocess.Popen(['python', 'admin_panel.py'])
@@ -110,6 +113,10 @@ def open_records_page():
         subprocess.Popen(['python', 'records_page.py'])
     except Exception as e:
         messagebox.showerror("Error", f"Failed to open records: {str(e)}")
+
+# Initialize counter if not exists
+if not counter_collection.find_one({"_id": "booking_id"}):
+    counter_collection.insert_one({"_id": "booking_id", "sequence_value": 0})
 
 # GUI Window
 root = tk.Tk()
@@ -167,7 +174,6 @@ sports_dropdown = ttk.Combobox(root, textvariable=sports_var, values=[
 ])
 sports_dropdown.pack()
 
-# Disable past dates in calendar
 today = date.today()
 
 tk.Label(root, text="Issue Date:").pack()
@@ -178,10 +184,8 @@ tk.Label(root, text="Return Date:").pack()
 return_date = DateEntry(root, width=12, background="darkblue", foreground="white", borderwidth=2, mindate=today)
 return_date.pack()
 
-# Update return date when issue date changes
 issue_date.bind("<<DateEntrySelected>>", update_return_date)
 
-# BOOK Button
 book_button = tk.Button(root, text="BOOK", command=book_equipment, bg="green", fg="white", font=("Arial", 12, "bold"))
 book_button.pack(pady=20)
 
