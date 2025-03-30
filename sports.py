@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from pymongo import MongoClient
 from datetime import date
+import subprocess
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
@@ -73,11 +74,16 @@ def book_equipment():
 
 # Function to open admin panel (Placeholder)
 def open_admin_panel():
-    messagebox.showinfo("Admin Panel", "Admin Panel Coming Soon!")
+    try:
+        subprocess.Popen(['python', 'admin_panel.py'])
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open admin panel: {str(e)}")
 
-# Function to open records page (Placeholder)
-def open_records():
-    messagebox.showinfo("Records", "Records Page Coming Soon!")
+def open_records_page():
+    try:
+        subprocess.Popen(['python', 'records_page.py'])
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open records: {str(e)}")
 
 # GUI Window
 root = tk.Tk()
@@ -91,7 +97,7 @@ top_frame.pack(pady=10)
 admin_button = tk.Button(top_frame, text="Admin Panel", command=open_admin_panel, bg="blue", fg="white", font=("Arial", 12, "bold"))
 admin_button.pack(side=tk.LEFT, padx=10)
 
-records_button = tk.Button(top_frame, text="Records", command=open_records, bg="orange", fg="white", font=("Arial", 12, "bold"))
+records_button = tk.Button(top_frame, text="Records", command=open_records_page, bg="orange", fg="white", font=("Arial", 12, "bold"))
 records_button.pack(side=tk.RIGHT, padx=10)
 
 # Labels and Entry Fields
