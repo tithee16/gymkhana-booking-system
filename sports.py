@@ -179,7 +179,7 @@ today = date.today()
 tk.Label(root, text="Issue Date:").pack()
 issue_date = DateEntry(root, width=12, background="darkblue", foreground="white", borderwidth=2, mindate=today)
 issue_date.pack()
-
+ 
 tk.Label(root, text="Return Date:").pack()
 return_date = DateEntry(root, width=12, background="darkblue", foreground="white", borderwidth=2, mindate=today)
 return_date.pack()
