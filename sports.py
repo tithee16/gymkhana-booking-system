@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from datetime import date
 import subprocess
 from datetime import datetime, date
+import re
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
@@ -56,6 +57,34 @@ def reset_fields():
     issue_date.set_date(today)
     return_date.set_date(today)
 
+def is_valid_email():
+    email = email_entry.get()
+    branch = branch_var.get()
+    
+    if not branch:
+        return False
+        
+    # Map branch names to their initials
+    branch_map = {
+        "CS": "ce",
+        "IT": "it",
+        "ExTC": "et",
+        "Electronics": "el",
+        "Electrical": "ee",
+        "Mechanical": "me",
+        "Civil": "ci",
+        "Production": "pe",
+        "Textile": "tx",
+        "Chemical": "cc",
+        "MCA": "mc",
+        "Masters": "ms"
+    }
+    
+    branch_initials = branch_map.get(branch, "").lower()
+    pattern = rf'^[a-zA-Z0-9._%+-]+@{branch_initials}\.vjti\.ac\.in$'
+    
+    return re.match(pattern, email) is not None
+
 def book_equipment():
     issue_dt = datetime.strptime(issue_date_entry.get(), '%Y-%m-%d').date()
     return_dt = return_date.get_date()
@@ -91,6 +120,11 @@ def book_equipment():
         mobile_entry.focus_set()
         return
         
+    if not is_valid_email():
+        messagebox.showerror("Error", f"Email must be of VJTI college")
+        email_entry.focus_set()
+        return
+    
     # Validate registration number
     if not is_valid_registration():
         messagebox.showerror("Error", "Registration number must be exactly 9 digits")
