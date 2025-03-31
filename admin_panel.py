@@ -146,6 +146,63 @@ def load_bookings():
     except Exception as e:
         messagebox.showerror("Database Error", f"Failed to load bookings: {str(e)}")
 
+def search_bookings():
+    """Search bookings by registration number"""
+    search_term = search_entry.get().strip()
+    if not search_term:
+        load_bookings()  # Reload all if search is empty
+        return
+    
+    try:
+        # Clear existing rows
+        for row in bookings_tree.get_children():
+            bookings_tree.delete(row)
+        
+        # Get current date for comparison
+        current_date = datetime.now().date()
+        
+        # Search for registration numbers containing the search term (case insensitive)
+        regex_pattern = f".*{search_term}.*"
+        pending_bookings = bookings.find({
+            "status": "Pending",
+            "reg_no": {"$regex": regex_pattern, "$options": "i"}
+        }).sort("booking_id", 1)
+        
+        # Insert matching records into treeview
+        for booking in pending_bookings:
+            return_date_str = booking.get("return_date", "")
+            try:
+                return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+                is_overdue = return_date < current_date
+                is_due_today = return_date == current_date
+            except (ValueError, TypeError):
+                is_overdue = False
+                is_due_today = False
+            
+            item_id = bookings_tree.insert("", "end", values=(
+                booking.get("booking_id", "N/A"),
+                booking.get("name", "N/A"),
+                booking.get("reg_no", "N/A"),
+                booking.get("sports", "N/A"),
+                booking.get("issue_date", "N/A"),
+                return_date_str
+            ))
+            
+            if is_overdue:
+                bookings_tree.tag_configure('overdue', background='#ffcccc')
+                bookings_tree.item(item_id, tags=('overdue',))
+            elif is_due_today:
+                bookings_tree.tag_configure('due_today', background='#ffff99')
+                bookings_tree.item(item_id, tags=('due_today',))
+                
+    except Exception as e:
+        messagebox.showerror("Search Error", f"Failed to search bookings: {str(e)}")
+
+def clear_search():
+    """Clear search entry and reload all bookings"""
+    search_entry.delete(0, tk.END)
+    load_bookings()
+
 def return_equipment():
     """Mark selected booking as returned and update inventory"""
     selected_item = bookings_tree.selection()
@@ -181,7 +238,7 @@ def return_equipment():
 # Main GUI Setup
 admin_root = tk.Tk()
 admin_root.title("Admin Panel - Sports Equipment Management")
-admin_root.geometry("1000x700")
+admin_root.geometry("1000x750")
 
 # Tables Frame
 frame = tk.Frame(admin_root)
@@ -213,6 +270,27 @@ bookings_tree.heading("Equipment", text="Equipment")
 bookings_tree.heading("Issue Date", text="Issue Date")
 bookings_tree.heading("Return Date", text="Return Date")
 bookings_tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+# Search Frame (now below the bookings table)
+search_frame = tk.Frame(frame)
+search_frame.pack(pady=10, fill=tk.X)
+
+search_label = tk.Label(search_frame, text="Search by Reg No:", font=("Arial", 12))
+search_label.pack(side=tk.LEFT, padx=5)
+
+search_entry = tk.Entry(search_frame, font=("Arial", 12), width=30)
+search_entry.pack(side=tk.LEFT, padx=5)
+search_entry.bind("<Return>", lambda e: search_bookings())  # Search on Enter key
+
+search_button = tk.Button(search_frame, text="Search", command=search_bookings,
+                         bg="#4CAF50", fg="white", font=("Arial", 12),
+                         padx=15, pady=2)
+search_button.pack(side=tk.LEFT, padx=5)
+
+clear_button = tk.Button(search_frame, text="Clear", command=clear_search,
+                        bg="#f44336", fg="white", font=("Arial", 12),
+                        padx=15, pady=2)
+clear_button.pack(side=tk.LEFT, padx=5)
 
 # Configure column widths
 inventory_tree.column("ID", width=100, anchor=tk.CENTER)
