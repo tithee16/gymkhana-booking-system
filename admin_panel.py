@@ -101,25 +101,48 @@ def load_inventory():
         messagebox.showerror("Database Error", f"Failed to load inventory: {str(e)}")
 
 def load_bookings():
-    """Load only Pending bookings into the table"""
+    """Load only Pending bookings into the table and highlight overdue items and items due today"""
     try:
         # Clear existing rows
         for row in bookings_tree.get_children():
             bookings_tree.delete(row)
 
+        # Get current date for comparison
+        current_date = datetime.now().date()
+        
         # Fetch only pending bookings sorted by booking_id
         pending_bookings = bookings.find({"status": "Pending"}).sort("booking_id", 1)
         
         # Insert into treeview
         for booking in pending_bookings:
-            bookings_tree.insert("", "end", values=(
+            return_date_str = booking.get("return_date", "")
+            try:
+                # Try to parse the return date
+                return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+                is_overdue = return_date < current_date
+                is_due_today = return_date == current_date
+            except (ValueError, TypeError):
+                # If date parsing fails, don't mark as overdue or due today
+                is_overdue = False
+                is_due_today = False
+            
+            item_id = bookings_tree.insert("", "end", values=(
                 booking.get("booking_id", "N/A"),
                 booking.get("name", "N/A"),
                 booking.get("reg_no", "N/A"),
                 booking.get("sports", "N/A"),
                 booking.get("issue_date", "N/A"),
-                booking.get("return_date", "N/A")
+                return_date_str
             ))
+            
+            # Highlight overdue items with red background
+            if is_overdue:
+                bookings_tree.tag_configure('overdue', background='#ffcccc')  # light red
+                bookings_tree.item(item_id, tags=('overdue',))
+            # Highlight items due today with yellow background
+            elif is_due_today:
+                bookings_tree.tag_configure('due_today', background='#ffff99')  # light yellow
+                bookings_tree.item(item_id, tags=('due_today',))
     except Exception as e:
         messagebox.showerror("Database Error", f"Failed to load bookings: {str(e)}")
 
