@@ -238,49 +238,44 @@ def return_equipment():
 # Main GUI Setup
 admin_root = tk.Tk()
 admin_root.title("Admin Panel - Sports Equipment Management")
-admin_root.geometry("1000x750")
+admin_root.geometry("1000x700")  # Slightly increased window height
 
-# Tables Frame
-frame = tk.Frame(admin_root)
-frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+# Main container frame
+main_frame = tk.Frame(admin_root)
+main_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-# Inventory Table
-inventory_label = tk.Label(frame, text="Inventory", font=("Arial", 14, "bold"))
+# Inventory Section
+inventory_frame = tk.Frame(main_frame)
+inventory_frame.pack(fill=tk.BOTH, expand=True)
+
+inventory_label = tk.Label(inventory_frame, text="Inventory", font=("Arial", 14, "bold"))
 inventory_label.pack(pady=5)
 
-inventory_tree = ttk.Treeview(frame, columns=("ID", "Equipment Name", "Count"), show="headings")
+inventory_tree = ttk.Treeview(inventory_frame, columns=("ID", "Equipment Name", "Count"), 
+                             show="headings", height=10)  # Previous height
 inventory_tree.heading("ID", text="Equipment ID")
 inventory_tree.heading("Equipment Name", text="Equipment Name")
 inventory_tree.heading("Count", text="Count")
-inventory_tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+inventory_tree.pack(padx=10, pady=(0, 20), fill=tk.BOTH)  # Added space between tables
 inventory_tree.bind('<<TreeviewSelect>>', lambda e: inventory_tree.selection_remove(inventory_tree.selection()))
 
-# Current Bookings Table (Only Pending Status)
-bookings_label = tk.Label(frame, text="Current Bookings (Pending Only)", font=("Arial", 14, "bold"))
+# Bookings Section
+bookings_frame = tk.Frame(main_frame)
+bookings_frame.pack(fill=tk.BOTH, expand=True)
+
+bookings_label = tk.Label(bookings_frame, text="Current Bookings (Pending Only)", font=("Arial", 14, "bold"))
 bookings_label.pack(pady=5)
 
-bookings_tree = ttk.Treeview(frame, 
-                           columns=("Booking ID", "Name", "Reg No", "Equipment", "Issue Date", "Return Date"), 
-                           show="headings",
-                           selectmode="browse")
-bookings_tree.heading("Booking ID", text="Booking ID")
-bookings_tree.heading("Name", text="Name")
-bookings_tree.heading("Reg No", text="Registration No")
-bookings_tree.heading("Equipment", text="Equipment")
-bookings_tree.heading("Issue Date", text="Issue Date")
-bookings_tree.heading("Return Date", text="Return Date")
-bookings_tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-
-# Search Frame (now below the bookings table)
-search_frame = tk.Frame(frame)
-search_frame.pack(pady=10, fill=tk.X)
+# Search Frame
+search_frame = tk.Frame(bookings_frame)
+search_frame.pack(pady=(0, 5), fill=tk.X)
 
 search_label = tk.Label(search_frame, text="Search by Reg No:", font=("Arial", 12))
 search_label.pack(side=tk.LEFT, padx=5)
 
 search_entry = tk.Entry(search_frame, font=("Arial", 12), width=30)
 search_entry.pack(side=tk.LEFT, padx=5)
-search_entry.bind("<Return>", lambda e: search_bookings())  # Search on Enter key
+search_entry.bind("<Return>", lambda e: search_bookings())
 
 search_button = tk.Button(search_frame, text="Search", command=search_bookings,
                          bg="#4CAF50", fg="white", font=("Arial", 12),
@@ -292,21 +287,22 @@ clear_button = tk.Button(search_frame, text="Clear", command=clear_search,
                         padx=15, pady=2)
 clear_button.pack(side=tk.LEFT, padx=5)
 
-# Configure column widths
-inventory_tree.column("ID", width=100, anchor=tk.CENTER)
-inventory_tree.column("Equipment Name", width=200, anchor=tk.CENTER)
-inventory_tree.column("Count", width=100, anchor=tk.CENTER)
+bookings_tree = ttk.Treeview(bookings_frame, 
+                           columns=("Booking ID", "Name", "Reg No", "Equipment", "Issue Date", "Return Date"), 
+                           show="headings",
+                           selectmode="browse",
+                           height=10)  # Previous height
+bookings_tree.heading("Booking ID", text="Booking ID")
+bookings_tree.heading("Name", text="Name")
+bookings_tree.heading("Reg No", text="Registration No")
+bookings_tree.heading("Equipment", text="Equipment")
+bookings_tree.heading("Issue Date", text="Issue Date")
+bookings_tree.heading("Return Date", text="Return Date")
+bookings_tree.pack(padx=10, pady=(0, 15), fill=tk.BOTH)  # Space above buttons
 
-bookings_tree.column("Booking ID", width=100, anchor=tk.CENTER)
-bookings_tree.column("Name", width=150, anchor=tk.CENTER)
-bookings_tree.column("Reg No", width=120, anchor=tk.CENTER)
-bookings_tree.column("Equipment", width=150, anchor=tk.CENTER)
-bookings_tree.column("Issue Date", width=120, anchor=tk.CENTER)
-bookings_tree.column("Return Date", width=120, anchor=tk.CENTER)
-
-# Buttons
-button_frame = tk.Frame(admin_root)
-button_frame.pack(pady=10)
+# Buttons Frame (positioned closer to tables)
+button_frame = tk.Frame(main_frame)
+button_frame.pack(pady=(6, 4))  # Reduced padding to move buttons up
 
 return_button = tk.Button(button_frame, text="Return Equipment", command=return_equipment, 
                          bg="red", fg="white", font=("Arial", 12, "bold"),
@@ -322,6 +318,19 @@ export_button = tk.Button(button_frame, text="Export to Power BI", command=expor
                          bg="green", fg="white", font=("Arial", 12, "bold"),
                          padx=20, pady=5)
 export_button.pack(side=tk.LEFT, padx=10)
+
+# Configure column widths
+inventory_tree.column("ID", width=100, anchor=tk.CENTER)
+inventory_tree.column("Equipment Name", width=200, anchor=tk.CENTER)
+inventory_tree.column("Count", width=100, anchor=tk.CENTER)
+
+bookings_tree.column("Booking ID", width=100, anchor=tk.CENTER)
+bookings_tree.column("Name", width=150, anchor=tk.CENTER)
+bookings_tree.column("Reg No", width=120, anchor=tk.CENTER)
+bookings_tree.column("Equipment", width=150, anchor=tk.CENTER)
+bookings_tree.column("Issue Date", width=120, anchor=tk.CENTER)
+bookings_tree.column("Return Date", width=120, anchor=tk.CENTER)
+
 
 # Initialize and load data
 initialize_inventory()
