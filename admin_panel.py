@@ -1,6 +1,35 @@
 import tkinter as tk
+import os
+import pandas as pd
+from datetime import datetime
 from tkinter import ttk, messagebox
 from pymongo import MongoClient
+
+def export_to_powerbi():
+    """Export current data to CSV for Power BI consumption"""
+    try:
+        # Create powerbi_data directory if it doesn't exist
+        os.makedirs("powerbi_data", exist_ok=True)
+        
+        # Get current data
+        booking_data = list(bookings.find())
+        inventory_data = list(inventory.find())
+        
+        # Convert to DataFrames
+        bookings_df = pd.DataFrame(booking_data)
+        inventory_df = pd.DataFrame(inventory_data)
+        
+        # Generate timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Save to CSV
+        bookings_df.to_csv(f"powerbi_data/bookings_{timestamp}.csv", index=False)
+        inventory_df.to_csv(f"powerbi_data/inventory_{timestamp}.csv", index=False)
+        
+        messagebox.showinfo("Success", "Data exported successfully for Power BI!")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to export data: {str(e)}")
+
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
@@ -187,6 +216,11 @@ reload_button = tk.Button(button_frame, text="Reload Bookings", command=load_boo
                           bg="blue", fg="white", font=("Arial", 12, "bold"),
                           padx=20, pady=5)
 reload_button.pack(side=tk.LEFT, padx=10)
+
+export_button = tk.Button(button_frame, text="Export to Power BI", command=export_to_powerbi, 
+                         bg="green", fg="white", font=("Arial", 12, "bold"),
+                         padx=20, pady=5)
+export_button.pack(side=tk.LEFT, padx=10)
 
 # Initialize and load data
 initialize_inventory()

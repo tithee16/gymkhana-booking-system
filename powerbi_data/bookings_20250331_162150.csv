@@ -1,0 +1,13 @@
+_id,booking_id,name,email,mobile,reg_no,branch,year,sports,issue_date,return_date,status
+67e9bc06feb8802ae21cfadd,B1,swarali,sb@gmail.com,90,74,Electrical,2nd,Volleyball,2025-03-31,2025-03-31,Returned
+67e9bd89ad2053bae8e01387,B2,aditya sharma,as@gmail.com,idk :(,no reg no.,MCA,4th,Badminton Racket,2025-03-31,2025-03-31,Returned
+67e9bf9c4e6d15500fa0dd73,B3,Shreya Ghodeswar,SG@gmail.com,9130515349,231081025,IT,2nd,Shuttle Cock,2025-03-31,2025-03-31,Returned
+67e9bfe14e6d15500fa0dd74,B4,Tithee Upase,TU@gmail.com,9860429127,231081073,IT,2nd,Football,2025-03-31,2025-03-31,Pending
+67e9c42c3a9a2039f7601f94,B6,Maithili,maithili@gmail.com,adsfdgb,98542,IT,3rd,Cricket Bat,2025-03-31,2025-03-31,Returned
+67e9c5e9853dd35afff276b4,B7,Prutha,prutha@gma,852,985,Mechanical,2nd,Badminton Racket,2025-03-31,2025-03-31,Returned
+67e9d079f1e49c704af4278b,B9,Nandini,nandini@gmail.com,1234568794,123456784,Chemical,3rd,Tennis Ball,2025-03-31,2025-03-31,Pending
+67e9d857beacc509ce667c78,B10,Arun,ahgcvb,9874563214,125436987,Mechanical,2nd,Cricket Bat,2025-03-31,2025-03-31,Pending
+67ea65afc109667d821e0831,B11,Shreya Ghodeswar,sj@gmail.com,9130515349,231081025,IT,2nd,Cricket Bat,2025-03-31,2025-04-01,Pending
+67ea6ccca665ee374d51f476,B12,Sahil,sahil@ce.vjti.ac.in,9845321679,241061045,CS,3rd,Tennis Ball,2025-03-31,2025-03-31,Pending
+67ea6f963acb56c6e808609b,B13,Sadhya,sadhya@it.vjti.ac.in,9876543210,231080034,IT,2nd,Cricket Bat,2025-03-31,2025-03-31,Pending
+67ea7249ee899325178d042e,B14,Akshay,akshay@el.vjti.ac.in,9874561235,224578913,Electronics,3rd,Volleyball,2025-03-31,2025-03-31,Pending
