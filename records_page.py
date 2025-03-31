@@ -65,7 +65,7 @@ def show_records():
         records = collection.find().sort("_id", -1)  # Newest first
         for record in records:
             tree.insert("", "end", values=(
-                str(record.get("_id")), 
+                record.get("booking_id", ""), 
                 record.get("name", ""), 
                 record.get("email", ""),
                 record.get("mobile", ""), 

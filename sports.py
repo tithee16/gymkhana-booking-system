@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 from pymongo import MongoClient
 from datetime import date
 import subprocess
+from datetime import datetime, date
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
@@ -51,8 +52,14 @@ def reset_fields():
     return_date.set_date(today)
 
 def book_equipment():
-    issue_dt = issue_date.get_date()
+    issue_dt = datetime.strptime(issue_date_entry.get(), '%Y-%m-%d').date()
     return_dt = return_date.get_date()
+
+    # Rest of your existing code...
+    if return_dt < issue_dt:
+        messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
+        return
+    
     reg_no = reg_entry.get()
     sport_name = sports_var.get()
 
@@ -72,6 +79,17 @@ def book_equipment():
     existing_student = db["students"].find_one({"reg_no": reg_no})
     if existing_student:
         messagebox.showerror("Error", "This registration number is already in use!")
+        return
+    
+    if not is_valid_mobile():
+        messagebox.showerror("Error", "Mobile number must be exactly 10 digits")
+        mobile_entry.focus_set()
+        return
+        
+    # Validate registration number
+    if not is_valid_registration():
+        messagebox.showerror("Error", "Registration number must be exactly 9 digits")
+        reg_entry.focus_set()
         return
 
     booking_id = get_next_booking_id()
@@ -115,11 +133,42 @@ def open_records_page():
     except Exception as e:
         messagebox.showerror("Error", f"Failed to open records: {str(e)}")
 
+def validate_numeric_input(new_value, max_length):
+    """Strict numeric validation with max length enforcement"""
+    if new_value == "":  # Allow empty for backspace/delete
+        return True
+    if not new_value.isdigit():  # Only digits allowed
+        return False
+    if len(new_value) > max_length:  # Strict length limit
+        return False
+    return True
+
+def validate_mobile(new_value):
+    """Mobile number must be exactly 10 digits"""
+    return validate_numeric_input(new_value, 10)
+
+def validate_registration(new_value):
+    """Registration number must be exactly 9 digits"""
+    return validate_numeric_input(new_value, 9)
+
+def is_valid_mobile():
+    """Final validation - exactly 10 digits"""
+    mobile = mobile_entry.get()
+    return len(mobile) == 10 and mobile.isdigit()
+
+def is_valid_registration():
+    """Final validation - exactly 9 digits"""
+    reg_no = reg_entry.get()
+    return len(reg_no) == 9 and reg_no.isdigit()
+
 # Main Window Setup
 root = tk.Tk()
 root.title("Sports Equipment Booking System")
 root.geometry("600x750")  # Adjusted window size
 root.resizable(True, True)  # Disable resizing
+
+validate_mobile_cmd = root.register(validate_mobile)
+validate_reg_cmd = root.register(validate_registration)
 
 # Color Scheme
 BG_COLOR = "#f0f2f5"
@@ -183,8 +232,19 @@ for i, (text, var_name) in enumerate(fields):
     tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
              bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
     
-    entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
-                    bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1)
+    # Special validation for mobile and registration fields
+    if var_name == "mobile_entry":
+        entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
+                        bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1,
+                        validate="key", validatecommand=(validate_mobile_cmd, '%P'))
+    elif var_name == "reg_entry":
+        entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
+                        bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1,
+                        validate="key", validatecommand=(validate_reg_cmd, '%P'))
+    else:
+        entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
+                        bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1)
+    
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
@@ -215,6 +275,7 @@ for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
     globals()[var_name] = var
 
 # Date Selection with improved styling
+# Date Selection
 dates_frame = tk.Frame(form_frame, bg="white")
 dates_frame.pack(fill=tk.X, pady=(15, 0))
 
@@ -226,31 +287,46 @@ date_selection_frame.pack(fill=tk.X)
 
 today = date.today()
 
-# Issue Date
+# Issue Date (Fixed to Today, Visible but Uneditable)
 issue_date_frame = tk.Frame(date_selection_frame, bg="white")
 issue_date_frame.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
 tk.Label(issue_date_frame, text="Issue Date:", font=MEDIUM_FONT, 
          bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
 
-issue_date = DateEntry(issue_date_frame, width=12, background=ACCENT_COLOR, 
-                      foreground="white", borderwidth=2, mindate=today, 
-                      font=SMALL_FONT, date_pattern='yyyy-mm-dd')
-issue_date.pack(side=tk.LEFT, padx=5)  # Changed to LEFT to bring it closer
+issue_date_entry = tk.Entry(
+    issue_date_frame,
+    font=SMALL_FONT,
+    width=12,
+    bg=ENTRY_BG,
+    fg=TEXT_COLOR,  # Ensure text color contrasts with background
+    relief=tk.SOLID,
+    borderwidth=1,
+    state='normal'  # Temporarily set to normal to insert text
+)
+issue_date_entry.insert(0, today.strftime('%Y-%m-%d'))  # Insert today's date
+issue_date_entry.config(state='readonly')  # Lock after setting text
+issue_date_entry.pack(side=tk.LEFT, padx=5)
 
-# Return Date
+# Return Date (Editable, Must Be ≥ Today)
 return_date_frame = tk.Frame(date_selection_frame, bg="white")
 return_date_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
 
 tk.Label(return_date_frame, text="Return Date:", font=MEDIUM_FONT, 
          bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
 
-return_date = DateEntry(return_date_frame, width=12, background=ACCENT_COLOR, 
-                       foreground="white", borderwidth=2, mindate=today, 
-                       font=SMALL_FONT, date_pattern='yyyy-mm-dd')
-return_date.pack(side=tk.LEFT, padx=5)  # Changed to LEFT to bring it closer
-
-issue_date.bind("<<DateEntrySelected>>", update_return_date)
+return_date = DateEntry(
+    return_date_frame,
+    width=12,
+    background=ACCENT_COLOR,
+    foreground="white",
+    borderwidth=2,
+    mindate=today,  # Cannot select dates before today
+    font=SMALL_FONT,
+    date_pattern='yyyy-mm-dd'
+)
+return_date.set_date(today)  # Default to today
+return_date.pack(side=tk.LEFT, padx=5)
 
 # Button Container (moved upwards)
 button_container = tk.Frame(main_container, bg=BG_COLOR, pady=10)  # Reduced pady to bring it up
