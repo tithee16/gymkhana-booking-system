@@ -26,6 +26,33 @@ def get_next_booking_id():
     )
     return f"B{counter['sequence_value']}"
 
+def extract_branch_from_email(email):
+    """Extract branch from email in format username@branch.vjti.ac.in"""
+    if not email or '@' not in email or '.vjti.ac.in' not in email:
+        return None
+    
+    # Extract the part between @ and .vjti
+    domain_part = email.split('@')[1]
+    branch_code = domain_part.split('.')[0].lower()  # Convert to lowercase for matching
+    
+    # Map email domain parts to branch names
+    branch_mapping = {
+        'ce': 'CS',
+        'it': 'IT',
+        'et': 'ExTC',
+        'el': 'Electronics',
+        'ee': 'Electrical',
+        'me': 'Mechanical',
+        'ci': 'Civil',
+        'pe': 'Production',
+        'tx': 'Textile',
+        'cc': 'Chemical',
+        'mc': 'MCA',
+        'ms': 'Masters'
+    }
+    
+    return branch_mapping.get(branch_code)
+
 def update_inventory_on_booking(sport_name, change=-1):
     inventory = db["Inventory"]
     result = inventory.update_one(
@@ -59,47 +86,20 @@ def reset_fields():
 
 def is_valid_email():
     email = email_entry.get()
-    branch = branch_var.get()
-    
-    if not branch:
-        return False
-        
-    # Map branch names to their initials
-    branch_map = {
-        "CS": "ce",
-        "IT": "it",
-        "ExTC": "et",
-        "Electronics": "el",
-        "Electrical": "ee",
-        "Mechanical": "me",
-        "Civil": "ci",
-        "Production": "pe",
-        "Textile": "tx",
-        "Chemical": "cc",
-        "MCA": "mc",
-        "Masters": "ms"
-    }
-    
-    branch_initials = branch_map.get(branch, "").lower()
-    pattern = rf'^[a-zA-Z0-9._%+-]+@{branch_initials}\.vjti\.ac\.in$'
-    
+    # Pattern for VJTI college emails
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.vjti\.ac\.in$'
     return re.match(pattern, email) is not None
 
 def book_equipment():
     issue_dt = datetime.strptime(issue_date_entry.get(), '%Y-%m-%d').date()
     return_dt = return_date.get_date()
 
-    # Rest of your existing code...
     if return_dt < issue_dt:
         messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
         return
     
     reg_no = reg_entry.get()
     sport_name = sports_var.get()
-
-    if return_dt < issue_dt:
-        messagebox.showerror("Error", "Return Date cannot be before Issue Date!")
-        return
 
     if not check_inventory_availability(sport_name):
         messagebox.showerror("Error", "This equipment is currently out of stock!")
@@ -121,11 +121,10 @@ def book_equipment():
         return
         
     if not is_valid_email():
-        messagebox.showerror("Error", f"Email must be of VJTI college")
+        messagebox.showerror("Error", "Email must be a valid VJTI email (username@branch.vjti.ac.in)")
         email_entry.focus_set()
         return
     
-    # Validate registration number
     if not is_valid_registration():
         messagebox.showerror("Error", "Registration number must be exactly 9 digits")
         reg_entry.focus_set()
@@ -203,8 +202,8 @@ def is_valid_registration():
 # Main Window Setup
 root = tk.Tk()
 root.title("Sports Equipment Booking System")
-root.geometry("600x750")  # Adjusted window size
-root.resizable(True, True)  # Disable resizing
+root.geometry("600x750")
+root.resizable(True, True)
 
 validate_mobile_cmd = root.register(validate_mobile)
 validate_reg_cmd = root.register(validate_registration)
@@ -225,7 +224,6 @@ MEDIUM_FONT = ("Segoe UI", 11, "bold")
 HEADING_FONT = ("Segoe UI", 16, "bold")
 BUTTON_FONT = ("Segoe UI", 12, "bold")
 
-# Configure root background
 root.configure(bg=BG_COLOR)
 
 # Header Frame
@@ -239,24 +237,22 @@ tk.Label(header_frame, text="SPORTS EQUIPMENT BOOKING", font=("Segoe UI", 18, "b
 main_container = tk.Frame(root, padx=20, pady=20, bg=BG_COLOR)
 main_container.pack(expand=True, fill=tk.BOTH)
 
-# Form Container with card-like appearance
+# Form Container
 form_card = tk.Frame(main_container, bg="white", bd=2, relief=tk.RAISED, 
                     highlightbackground="#dfe6e9", highlightthickness=1)
 form_card.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-# ========= FORM SECTION =========
+# Form Section
 form_frame = tk.Frame(form_card, padx=15, pady=15, bg="white")
 form_frame.pack(fill=tk.BOTH, expand=True)
 
-# Student Information Heading
 tk.Label(form_frame, text="Student Information", font=HEADING_FONT, 
          bg="white", fg=TEXT_COLOR).pack(anchor='w', pady=(0, 15))
 
-# Form Fields Grid
 fields_frame = tk.Frame(form_frame, bg="white")
 fields_frame.pack(fill=tk.X)
 
-# Create form fields with consistent styling
+# Create form fields
 fields = [
     ("Name:", "name_entry"),
     ("Email ID:", "email_entry"),
@@ -271,7 +267,6 @@ for i, (text, var_name) in enumerate(fields):
     tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
              bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
     
-    # Special validation for mobile and registration fields
     if var_name == "mobile_entry":
         entry = tk.Entry(row_frame, font=SMALL_FONT, width=30, 
                         bg=ENTRY_BG, fg=TEXT_COLOR, relief=tk.SOLID, borderwidth=1,
@@ -287,7 +282,7 @@ for i, (text, var_name) in enumerate(fields):
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
-# Dropdown Fields with consistent styling
+# Dropdown Fields
 dropdowns = [
     ("Branch:", "branch_var", ["CS", "IT", "ExTC", "Electronics", "Electrical", 
      "Mechanical", "Civil", "Production", "Textile", "Chemical", "MCA", "Masters"]),
@@ -312,8 +307,45 @@ for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
     style.theme_use('clam')
     style.configure('TCombobox', fieldbackground=ENTRY_BG, background=ENTRY_BG)
     globals()[var_name] = var
+    if var_name == "branch_var":
+        branch_dropdown = combobox
 
-# Date Selection with improved styling
+def on_email_focus_out(event):
+    """Auto-fill branch when email is entered"""
+    email = email_entry.get()
+    if email:  # Only proceed if email is not empty
+        branch = extract_branch_from_email(email)
+        if branch:
+            branch_var.set(branch)
+            # Visual feedback
+            branch_dropdown.config(background='#e6ffe6')  # Light green
+            # Reset color after 1 second
+            branch_dropdown.after(1000, lambda: branch_dropdown.config(background='white'))
+
+# Add this binding after creating your email_entry widget
+email_entry.bind('<FocusOut>', on_email_focus_out)
+
+# When creating the branch dropdown, store a reference to it
+for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
+    row_frame = tk.Frame(fields_frame, bg="white")
+    row_frame.grid(row=i, column=0, sticky='ew', pady=5)
+    
+    tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
+             bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+    
+    var = tk.StringVar()
+    combobox = ttk.Combobox(row_frame, textvariable=var, values=values, 
+                           font=SMALL_FONT, width=27, state="readonly")
+    combobox.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure('TCombobox', fieldbackground=ENTRY_BG, background=ENTRY_BG)
+    globals()[var_name] = var
+    
+    # Store reference to the branch dropdown
+    if var_name == "branch_var":
+        branch_dropdown = combobox
+
 # Date Selection
 dates_frame = tk.Frame(form_frame, bg="white")
 dates_frame.pack(fill=tk.X, pady=(15, 0))
@@ -326,7 +358,7 @@ date_selection_frame.pack(fill=tk.X)
 
 today = date.today()
 
-# Issue Date (Fixed to Today, Visible but Uneditable)
+# Issue Date
 issue_date_frame = tk.Frame(date_selection_frame, bg="white")
 issue_date_frame.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
@@ -338,16 +370,16 @@ issue_date_entry = tk.Entry(
     font=SMALL_FONT,
     width=12,
     bg=ENTRY_BG,
-    fg=TEXT_COLOR,  # Ensure text color contrasts with background
+    fg=TEXT_COLOR,
     relief=tk.SOLID,
     borderwidth=1,
-    state='normal'  # Temporarily set to normal to insert text
+    state='normal'
 )
-issue_date_entry.insert(0, today.strftime('%Y-%m-%d'))  # Insert today's date
-issue_date_entry.config(state='readonly')  # Lock after setting text
+issue_date_entry.insert(0, today.strftime('%Y-%m-%d'))
+issue_date_entry.config(state='readonly')
 issue_date_entry.pack(side=tk.LEFT, padx=5)
 
-# Return Date (Editable, Must Be ≥ Today)
+# Return Date
 return_date_frame = tk.Frame(date_selection_frame, bg="white")
 return_date_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
 
@@ -360,39 +392,35 @@ return_date = DateEntry(
     background=ACCENT_COLOR,
     foreground="white",
     borderwidth=2,
-    mindate=today,  # Cannot select dates before today
+    mindate=today,
     font=SMALL_FONT,
     date_pattern='yyyy-mm-dd'
 )
-return_date.set_date(today)  # Default to today
+return_date.set_date(today)
 return_date.pack(side=tk.LEFT, padx=5)
 
-# Button Container (moved upwards)
-button_container = tk.Frame(main_container, bg=BG_COLOR, pady=10)  # Reduced pady to bring it up
+# Buttons
+button_container = tk.Frame(main_container, bg=BG_COLOR, pady=10)
 button_container.pack(fill=tk.X)
 
-# BOOK Button
 book_button = tk.Button(button_container, text="BOOK EQUIPMENT", command=book_equipment, 
                        bg=SUCCESS_COLOR, fg="white", font=BUTTON_FONT,
                        width=20, pady=8, relief=tk.FLAT, bd=0,
                        activebackground="#2ecc71", activeforeground="white")
 book_button.pack(pady=10)
 
-# ========= ACTION BUTTONS ========= (enlarged and moved upwards)
-action_buttons_frame = tk.Frame(main_container, bg=BG_COLOR, pady=5)  # Reduced pady to bring it up
+action_buttons_frame = tk.Frame(main_container, bg=BG_COLOR, pady=5)
 action_buttons_frame.pack(fill=tk.X)
 
-# Admin Button (enlarged)
 admin_button = tk.Button(action_buttons_frame, text="ADMIN PANEL", command=open_admin_panel, 
                         bg=BUTTON_COLOR, fg="white", font=BUTTON_FONT,
-                        width=18, pady=10, relief=tk.FLAT, bd=0,  # Increased width and pady
+                        width=18, pady=10, relief=tk.FLAT, bd=0,
                         activebackground="#3498db", activeforeground="white")
 admin_button.pack(side=tk.LEFT, padx=10, expand=True)
 
-# Records Button (enlarged)
 records_button = tk.Button(action_buttons_frame, text="VIEW RECORDS", command=open_records_page, 
                           bg=BUTTON_COLOR, fg="white", font=BUTTON_FONT,
-                          width=18, pady=10, relief=tk.FLAT, bd=0,  # Increased width and pady
+                          width=18, pady=10, relief=tk.FLAT, bd=0,
                           activebackground="#3498db", activeforeground="white")
 records_button.pack(side=tk.RIGHT, padx=10, expand=True)
 
