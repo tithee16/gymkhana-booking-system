@@ -40,6 +40,11 @@ def check_inventory_availability(sport_name):
 def update_return_date(*args):
     return_date.config(mindate=issue_date.get_date())
 
+def initialize_widgets():
+    global name_entry, email_entry, mobile_entry, reg_entry, branch_var, year_var, sports_var, issue_date, return_date
+
+initialize_widgets()
+
 def reset_fields():
     name_entry.delete(0, tk.END)
     email_entry.delete(0, tk.END)
