@@ -159,8 +159,8 @@ def load_bookings():
         messagebox.showerror("Database Error", f"Failed to load bookings: {str(e)}")
 
 def search_bookings():
-    """Search bookings by registration number"""
-    search_term = search_entry.get().strip()
+    """Search bookings by any parameter"""
+    search_term = search_entry.get().strip().lower()
     if not search_term:
         load_bookings()  # Reload all if search is empty
         return
@@ -173,11 +173,18 @@ def search_bookings():
         # Get current date for comparison
         current_date = datetime.now().date()
         
-        # Search for registration numbers containing the search term (case insensitive)
+        # Search across multiple fields (case insensitive)
         regex_pattern = f".*{search_term}.*"
         pending_bookings = bookings.find({
             "status": "Pending",
-            "reg_no": {"$regex": regex_pattern, "$options": "i"}
+            "$or": [
+                {"booking_id": {"$regex": regex_pattern, "$options": "i"}},
+                {"name": {"$regex": regex_pattern, "$options": "i"}},
+                {"reg_no": {"$regex": regex_pattern, "$options": "i"}},
+                {"sports": {"$regex": regex_pattern, "$options": "i"}},
+                {"issue_date": {"$regex": regex_pattern, "$options": "i"}},
+                {"return_date": {"$regex": regex_pattern, "$options": "i"}}
+            ]
         }).sort("booking_id", 1)
         
         # Insert matching records into treeview
@@ -246,6 +253,10 @@ def return_equipment():
             messagebox.showerror("Error", "Failed to update booking status!")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to process return: {str(e)}")
+
+def close_panel():
+    """Close the admin panel"""
+    admin_root.destroy()
 
 # Main GUI Setup
 admin_root = tk.Tk()
@@ -352,7 +363,7 @@ search_frame = tk.Frame(bookings_frame, bg=BG_COLOR)
 search_frame.pack(fill=tk.X, pady=(0, 10))
 
 search_label = tk.Label(search_frame, 
-                       text="Search by Registration Number:", 
+                       text="Search:", 
                        font=button_font, 
                        bg=BG_COLOR,
                        fg=TEXT_COLOR)
@@ -468,6 +479,19 @@ export_button = tk.Button(button_frame,
                          borderwidth=2,
                          activebackground="#219653")
 export_button.pack(side=tk.LEFT, padx=10, expand=True)
+
+close_button = tk.Button(button_frame, 
+                        text="Close Panel", 
+                        command=close_panel, 
+                        bg=HEADER_COLOR, 
+                        fg=LIGHT_TEXT, 
+                        font=button_font,
+                        padx=20, 
+                        pady=8,
+                        relief=tk.RAISED,
+                        borderwidth=2,
+                        activebackground="#1a252f")
+close_button.pack(side=tk.LEFT, padx=10, expand=True)
 
 # Status Bar
 status_bar = tk.Label(main_frame, 

@@ -12,6 +12,7 @@ client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/"
 db = client["sports_db"]
 collection = db["booking"]
 counter_collection = db["counters"]
+students_collection = db["students"]  # Collection for student records
 
 # Initialize counter if not exists
 if not counter_collection.find_one({"_id": "booking_id"}):
@@ -71,8 +72,6 @@ def update_return_date(*args):
 def initialize_widgets():
     global name_entry, email_entry, mobile_entry, reg_entry, branch_var, year_var, sports_var, issue_date, return_date
 
-initialize_widgets()
-
 def reset_fields():
     name_entry.delete(0, tk.END)
     email_entry.delete(0, tk.END)
@@ -89,6 +88,39 @@ def is_valid_email():
     # Pattern for VJTI college emails
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.vjti\.ac\.in$'
     return re.match(pattern, email) is not None
+
+def fetch_student_data(reg_no):
+    """Fetch student data from database based on registration number"""
+    student = students_collection.find_one({"reg_no": reg_no})
+    if student:
+        return student
+    return None
+
+def autofill_student_data(event=None):
+    """Autofill form fields when registration number matches existing student"""
+    reg_no = reg_entry.get()
+    
+    # Only proceed if we have a complete registration number (9 digits)
+    if len(reg_no) == 9 and reg_no.isdigit():
+        student = fetch_student_data(reg_no)
+        if student:
+            # Update all fields with student data
+            name_entry.delete(0, tk.END)
+            name_entry.insert(0, student.get('name', ''))
+            
+            email_entry.delete(0, tk.END)
+            email_entry.insert(0, student.get('email', ''))
+            
+            mobile_entry.delete(0, tk.END)
+            mobile_entry.insert(0, student.get('mobile', ''))
+            
+            branch_var.set(student.get('branch', ''))
+            year_var.set(student.get('year', ''))
+            
+            # Trigger email focus out to set branch if email exists
+            if student.get('email', ''):
+                email_event = type('Event', (), {'widget': email_entry})()
+                on_email_focus_out(email_event)
 
 def book_equipment():
     issue_dt = datetime.strptime(issue_date_entry.get(), '%Y-%m-%d').date()
@@ -110,11 +142,6 @@ def book_equipment():
         messagebox.showerror("Error", "You already have a pending booking!")
         return
 
-    existing_student = db["students"].find_one({"reg_no": reg_no})
-    if existing_student:
-        messagebox.showerror("Error", "This registration number is already in use!")
-        return
-    
     if not is_valid_mobile():
         messagebox.showerror("Error", "Mobile number must be exactly 10 digits")
         mobile_entry.focus_set()
@@ -149,6 +176,17 @@ def book_equipment():
     if "" in student_data.values():
         messagebox.showerror("Error", "All fields are required!")
         return
+    
+    # Save student data if it doesn't exist
+    if not students_collection.find_one({"reg_no": reg_no}):
+        students_collection.insert_one({
+            "reg_no": reg_no,
+            "name": student_data["name"],
+            "email": student_data["email"],
+            "mobile": student_data["mobile"],
+            "branch": student_data["branch"],
+            "year": student_data["year"]
+        })
     
     collection.insert_one(student_data)
     
@@ -282,6 +320,9 @@ for i, (text, var_name) in enumerate(fields):
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
+# Add binding to registration number entry to autofill when complete
+reg_entry.bind('<KeyRelease>', autofill_student_data)
+
 # Dropdown Fields
 dropdowns = [
     ("Branch:", "branch_var", ["CS", "IT", "ExTC", "Electronics", "Electrical", 
@@ -324,27 +365,6 @@ def on_email_focus_out(event):
 
 # Add this binding after creating your email_entry widget
 email_entry.bind('<FocusOut>', on_email_focus_out)
-
-# When creating the branch dropdown, store a reference to it
-for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
-    row_frame = tk.Frame(fields_frame, bg="white")
-    row_frame.grid(row=i, column=0, sticky='ew', pady=5)
-    
-    tk.Label(row_frame, text=text, anchor='w', font=MEDIUM_FONT, 
-             bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
-    
-    var = tk.StringVar()
-    combobox = ttk.Combobox(row_frame, textvariable=var, values=values, 
-                           font=SMALL_FONT, width=27, state="readonly")
-    combobox.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
-    style = ttk.Style()
-    style.theme_use('clam')
-    style.configure('TCombobox', fieldbackground=ENTRY_BG, background=ENTRY_BG)
-    globals()[var_name] = var
-    
-    # Store reference to the branch dropdown
-    if var_name == "branch_var":
-        branch_dropdown = combobox
 
 # Date Selection
 dates_frame = tk.Frame(form_frame, bg="white")
