@@ -4,6 +4,19 @@ import pandas as pd
 from datetime import datetime
 from tkinter import ttk, messagebox
 from pymongo import MongoClient
+from tkinter.font import Font
+
+# Custom color scheme
+BG_COLOR = "#f0f2f5"
+HEADER_COLOR = "#2c3e50"
+BUTTON_COLOR = "#3498db"
+BUTTON_HOVER = "#2980b9"
+SUCCESS_COLOR = "#27ae60"
+WARNING_COLOR = "#e67e22"
+DANGER_COLOR = "#e74c3c"
+TEXT_COLOR = "#2c3e50"
+LIGHT_TEXT = "#ecf0f1"
+TABLE_HEADER_COLOR = "#34495e"
 
 def export_to_powerbi():
     """Export current data to CSV for Power BI consumption"""
@@ -29,7 +42,6 @@ def export_to_powerbi():
         messagebox.showinfo("Success", "Data exported successfully for Power BI!")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to export data: {str(e)}")
-
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://tithee:tithee@cluster0.elvlqwp.mongodb.net/")
@@ -137,11 +149,11 @@ def load_bookings():
             
             # Highlight overdue items with red background
             if is_overdue:
-                bookings_tree.tag_configure('overdue', background='#ffcccc')  # light red
+                bookings_tree.tag_configure('overdue', background='#ffdddd', foreground='#cc0000')  # light red
                 bookings_tree.item(item_id, tags=('overdue',))
             # Highlight items due today with yellow background
             elif is_due_today:
-                bookings_tree.tag_configure('due_today', background='#ffff99')  # light yellow
+                bookings_tree.tag_configure('due_today', background='#ffffcc', foreground='#997300')  # light yellow
                 bookings_tree.item(item_id, tags=('due_today',))
     except Exception as e:
         messagebox.showerror("Database Error", f"Failed to load bookings: {str(e)}")
@@ -189,10 +201,10 @@ def search_bookings():
             ))
             
             if is_overdue:
-                bookings_tree.tag_configure('overdue', background='#ffcccc')
+                bookings_tree.tag_configure('overdue', background='#ffdddd', foreground='#cc0000')
                 bookings_tree.item(item_id, tags=('overdue',))
             elif is_due_today:
-                bookings_tree.tag_configure('due_today', background='#ffff99')
+                bookings_tree.tag_configure('due_today', background='#ffffcc', foreground='#997300')
                 bookings_tree.item(item_id, tags=('due_today',))
                 
     except Exception as e:
@@ -238,91 +250,174 @@ def return_equipment():
 # Main GUI Setup
 admin_root = tk.Tk()
 admin_root.title("Admin Panel - Sports Equipment Management")
-admin_root.geometry("1000x700")  # Slightly increased window height
+admin_root.geometry("1100x750")
+admin_root.configure(bg=BG_COLOR)
+
+# Set custom font
+title_font = Font(family="Helvetica", size=16, weight="bold")
+header_font = Font(family="Helvetica", size=12, weight="bold")
+button_font = Font(family="Helvetica", size=10, weight="bold")
+table_font = Font(family="Helvetica", size=10)
+
+# Configure style for ttk widgets
+style = ttk.Style()
+style.theme_use('clam')
+
+# Configure Treeview colors
+style.configure("Treeview",
+                background="#ffffff",
+                foreground=TEXT_COLOR,
+                rowheight=25,
+                fieldbackground="#ffffff",
+                font=table_font)
+style.map('Treeview', background=[('selected', BUTTON_COLOR)])
+
+# Configure Treeview Heading
+style.configure("Treeview.Heading",
+                background=TABLE_HEADER_COLOR,
+                foreground=LIGHT_TEXT,
+                font=header_font,
+                padding=5)
 
 # Main container frame
-main_frame = tk.Frame(admin_root)
-main_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+main_frame = tk.Frame(admin_root, bg=BG_COLOR)
+main_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
+
+# Header
+header_frame = tk.Frame(main_frame, bg=HEADER_COLOR)
+header_frame.pack(fill=tk.X, pady=(0, 15))
+
+header_label = tk.Label(header_frame, 
+                       text="Sports Equipment Management System - Admin Panel", 
+                       font=title_font, 
+                       bg=HEADER_COLOR, 
+                       fg=LIGHT_TEXT,
+                       padx=10,
+                       pady=10)
+header_label.pack()
+
+# Content Frame
+content_frame = tk.Frame(main_frame, bg=BG_COLOR)
+content_frame.pack(fill=tk.BOTH, expand=True)
 
 # Inventory Section
-inventory_frame = tk.Frame(main_frame)
-inventory_frame.pack(fill=tk.BOTH, expand=True)
+inventory_frame = tk.LabelFrame(content_frame, 
+                              text=" Equipment Inventory ",
+                              font=header_font,
+                              bg=BG_COLOR,
+                              fg=TEXT_COLOR,
+                              padx=10,
+                              pady=10)
+inventory_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
 
-inventory_label = tk.Label(inventory_frame, text="Inventory", font=("Arial", 14, "bold"))
-inventory_label.pack(pady=5)
+# Inventory Treeview with scrollbars
+inventory_scroll_y = ttk.Scrollbar(inventory_frame)
+inventory_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
 
-inventory_tree = ttk.Treeview(inventory_frame, columns=("ID", "Equipment Name", "Count"), 
-                             show="headings", height=10)  # Previous height
-inventory_tree.heading("ID", text="Equipment ID")
-inventory_tree.heading("Equipment Name", text="Equipment Name")
-inventory_tree.heading("Count", text="Count")
-inventory_tree.pack(padx=10, pady=(0, 20), fill=tk.BOTH)  # Added space between tables
-inventory_tree.bind('<<TreeviewSelect>>', lambda e: inventory_tree.selection_remove(inventory_tree.selection()))
+inventory_scroll_x = ttk.Scrollbar(inventory_frame, orient=tk.HORIZONTAL)
+inventory_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+inventory_tree = ttk.Treeview(inventory_frame, 
+                             columns=("ID", "Equipment Name", "Count"), 
+                             show="headings",
+                             yscrollcommand=inventory_scroll_y.set,
+                             xscrollcommand=inventory_scroll_x.set,
+                             height=5)
+inventory_tree.pack(fill=tk.BOTH, expand=True)
+
+inventory_scroll_y.config(command=inventory_tree.yview)
+inventory_scroll_x.config(command=inventory_tree.xview)
+
+# Configure columns
+inventory_tree.heading("ID", text="Equipment ID", anchor=tk.CENTER)
+inventory_tree.heading("Equipment Name", text="Equipment Name", anchor=tk.CENTER)
+inventory_tree.heading("Count", text="Available Count", anchor=tk.CENTER)
+
+inventory_tree.column("ID", width=120, anchor=tk.CENTER)
+inventory_tree.column("Equipment Name", width=250, anchor=tk.CENTER)
+inventory_tree.column("Count", width=120, anchor=tk.CENTER)
 
 # Bookings Section
-bookings_frame = tk.Frame(main_frame)
+bookings_frame = tk.LabelFrame(content_frame, 
+                             text=" Current Bookings (Pending Only) ",
+                             font=header_font,
+                             bg=BG_COLOR,
+                             fg=TEXT_COLOR,
+                             padx=10,
+                             pady=10)
 bookings_frame.pack(fill=tk.BOTH, expand=True)
 
-bookings_label = tk.Label(bookings_frame, text="Current Bookings (Pending Only)", font=("Arial", 14, "bold"))
-bookings_label.pack(pady=5)
-
 # Search Frame
-search_frame = tk.Frame(bookings_frame)
-search_frame.pack(pady=(0, 5), fill=tk.X)
+search_frame = tk.Frame(bookings_frame, bg=BG_COLOR)
+search_frame.pack(fill=tk.X, pady=(0, 10))
 
-search_label = tk.Label(search_frame, text="Search by Reg No:", font=("Arial", 12))
-search_label.pack(side=tk.LEFT, padx=5)
+search_label = tk.Label(search_frame, 
+                       text="Search by Registration Number:", 
+                       font=button_font, 
+                       bg=BG_COLOR,
+                       fg=TEXT_COLOR)
+search_label.pack(side=tk.LEFT, padx=(0, 5))
 
-search_entry = tk.Entry(search_frame, font=("Arial", 12), width=30)
+search_entry = tk.Entry(search_frame, 
+                       font=table_font, 
+                       width=30,
+                       relief=tk.SOLID,
+                       borderwidth=1)
 search_entry.pack(side=tk.LEFT, padx=5)
 search_entry.bind("<Return>", lambda e: search_bookings())
 
-search_button = tk.Button(search_frame, text="Search", command=search_bookings,
-                         bg="#4CAF50", fg="white", font=("Arial", 12),
-                         padx=15, pady=2)
+search_button = tk.Button(search_frame, 
+                         text="Search", 
+                         command=search_bookings,
+                         bg=BUTTON_COLOR, 
+                         fg=LIGHT_TEXT, 
+                         font=button_font,
+                         padx=15, 
+                         pady=2,
+                         relief=tk.RAISED,
+                         borderwidth=2,
+                         activebackground=BUTTON_HOVER)
 search_button.pack(side=tk.LEFT, padx=5)
 
-clear_button = tk.Button(search_frame, text="Clear", command=clear_search,
-                        bg="#f44336", fg="white", font=("Arial", 12),
-                        padx=15, pady=2)
+clear_button = tk.Button(search_frame, 
+                        text="Clear", 
+                        command=clear_search,
+                        bg=WARNING_COLOR, 
+                        fg=LIGHT_TEXT, 
+                        font=button_font,
+                        padx=15, 
+                        pady=2,
+                        relief=tk.RAISED,
+                        borderwidth=2,
+                        activebackground="#d35400")
 clear_button.pack(side=tk.LEFT, padx=5)
+
+# Bookings Treeview with scrollbars
+bookings_scroll_y = ttk.Scrollbar(bookings_frame)
+bookings_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+
+bookings_scroll_x = ttk.Scrollbar(bookings_frame, orient=tk.HORIZONTAL)
+bookings_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
 bookings_tree = ttk.Treeview(bookings_frame, 
                            columns=("Booking ID", "Name", "Reg No", "Equipment", "Issue Date", "Return Date"), 
                            show="headings",
                            selectmode="browse",
-                           height=10)  # Previous height
-bookings_tree.heading("Booking ID", text="Booking ID")
-bookings_tree.heading("Name", text="Name")
-bookings_tree.heading("Reg No", text="Registration No")
-bookings_tree.heading("Equipment", text="Equipment")
-bookings_tree.heading("Issue Date", text="Issue Date")
-bookings_tree.heading("Return Date", text="Return Date")
-bookings_tree.pack(padx=10, pady=(0, 15), fill=tk.BOTH)  # Space above buttons
+                           yscrollcommand=bookings_scroll_y.set,
+                           xscrollcommand=bookings_scroll_x.set,
+                           height=5)
+bookings_tree.pack(fill=tk.BOTH, expand=True)
 
-# Buttons Frame (positioned closer to tables)
-button_frame = tk.Frame(main_frame)
-button_frame.pack(pady=(6, 4))  # Reduced padding to move buttons up
+bookings_scroll_y.config(command=bookings_tree.yview)
+bookings_scroll_x.config(command=bookings_tree.xview)
 
-return_button = tk.Button(button_frame, text="Return Equipment", command=return_equipment, 
-                         bg="red", fg="white", font=("Arial", 12, "bold"),
-                         padx=20, pady=5)
-return_button.pack(side=tk.LEFT, padx=10)
-
-reload_button = tk.Button(button_frame, text="Reload Bookings", command=load_bookings, 
-                          bg="blue", fg="white", font=("Arial", 12, "bold"),
-                          padx=20, pady=5)
-reload_button.pack(side=tk.LEFT, padx=10)
-
-export_button = tk.Button(button_frame, text="Export to Power BI", command=export_to_powerbi, 
-                         bg="green", fg="white", font=("Arial", 12, "bold"),
-                         padx=20, pady=5)
-export_button.pack(side=tk.LEFT, padx=10)
-
-# Configure column widths
-inventory_tree.column("ID", width=100, anchor=tk.CENTER)
-inventory_tree.column("Equipment Name", width=200, anchor=tk.CENTER)
-inventory_tree.column("Count", width=100, anchor=tk.CENTER)
+# Configure columns
+bookings_tree.heading("Booking ID", text="Booking ID", anchor=tk.CENTER)
+bookings_tree.heading("Name", text="Student Name", anchor=tk.CENTER)
+bookings_tree.heading("Reg No", text="Registration No", anchor=tk.CENTER)
+bookings_tree.heading("Equipment", text="Equipment", anchor=tk.CENTER)
+bookings_tree.heading("Issue Date", text="Issue Date", anchor=tk.CENTER)
+bookings_tree.heading("Return Date", text="Return Date", anchor=tk.CENTER)
 
 bookings_tree.column("Booking ID", width=100, anchor=tk.CENTER)
 bookings_tree.column("Name", width=150, anchor=tk.CENTER)
@@ -331,11 +426,71 @@ bookings_tree.column("Equipment", width=150, anchor=tk.CENTER)
 bookings_tree.column("Issue Date", width=120, anchor=tk.CENTER)
 bookings_tree.column("Return Date", width=120, anchor=tk.CENTER)
 
+# Buttons Frame
+button_frame = tk.Frame(main_frame, bg=BG_COLOR)
+button_frame.pack(fill=tk.X, pady=(15, 0))
+
+return_button = tk.Button(button_frame, 
+                        text="Return Selected Equipment", 
+                        command=return_equipment, 
+                        bg=DANGER_COLOR, 
+                        fg=LIGHT_TEXT, 
+                        font=button_font,
+                        padx=20, 
+                        pady=8,
+                        relief=tk.RAISED,
+                        borderwidth=2,
+                        activebackground="#c0392b")
+return_button.pack(side=tk.LEFT, padx=10, expand=True)
+
+reload_button = tk.Button(button_frame, 
+                         text="Refresh Data", 
+                         command=lambda: [load_bookings(), load_inventory()], 
+                         bg=BUTTON_COLOR, 
+                         fg=LIGHT_TEXT, 
+                         font=button_font,
+                         padx=20, 
+                         pady=8,
+                         relief=tk.RAISED,
+                         borderwidth=2,
+                         activebackground=BUTTON_HOVER)
+reload_button.pack(side=tk.LEFT, padx=10, expand=True)
+
+export_button = tk.Button(button_frame, 
+                         text="Export to Power BI", 
+                         command=export_to_powerbi, 
+                         bg=SUCCESS_COLOR, 
+                         fg=LIGHT_TEXT, 
+                         font=button_font,
+                         padx=20, 
+                         pady=8,
+                         relief=tk.RAISED,
+                         borderwidth=2,
+                         activebackground="#219653")
+export_button.pack(side=tk.LEFT, padx=10, expand=True)
+
+# Status Bar
+status_bar = tk.Label(main_frame, 
+                     text="Ready", 
+                     bd=1, 
+                     relief=tk.SUNKEN, 
+                     anchor=tk.W,
+                     font=table_font,
+                     bg=HEADER_COLOR,
+                     fg=LIGHT_TEXT)
+status_bar.pack(fill=tk.X, pady=(10, 0))
 
 # Initialize and load data
 initialize_inventory()
 remove_duplicates()
 load_inventory()
 load_bookings()
+
+# Center the window on screen
+window_width = admin_root.winfo_reqwidth()
+window_height = admin_root.winfo_reqheight()
+position_right = int(admin_root.winfo_screenwidth()/2 - window_width/2)
+position_down = int(admin_root.winfo_screenheight()/2 - window_height/2)
+admin_root.geometry(f"+{position_right}+{position_down}")
 
 admin_root.mainloop()
