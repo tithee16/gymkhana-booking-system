@@ -2,9 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from pymongo import MongoClient
-from datetime import date
+from datetime import datetime, date, timedelta
 import subprocess
-from datetime import datetime, date
 import re
 
 # MongoDB Connection
@@ -32,11 +31,9 @@ def extract_branch_from_email(email):
     if not email or '@' not in email or '.vjti.ac.in' not in email:
         return None
     
-    # Extract the part between @ and .vjti
     domain_part = email.split('@')[1]
-    branch_code = domain_part.split('.')[0].lower()  # Convert to lowercase for matching
+    branch_code = domain_part.split('.')[0].lower()
     
-    # Map email domain parts to branch names
     branch_mapping = {
         'ce': 'CS',
         'it': 'IT',
@@ -67,10 +64,12 @@ def check_inventory_availability(sport_name):
     return item and item.get("count", 0) > 0
 
 def update_return_date(*args):
-    return_date.config(mindate=issue_date.get_date())
-
-def initialize_widgets():
-    global name_entry, email_entry, mobile_entry, reg_entry, branch_var, year_var, sports_var, issue_date, return_date
+    """Set the maximum return date to 15 days from issue date"""
+    issue_dt = issue_date.get_date()
+    max_return_date = issue_dt + timedelta(days=15)
+    return_date.config(mindate=issue_dt, maxdate=max_return_date)
+    if return_date.get_date() > max_return_date:
+        return_date.set_date(max_return_date)
 
 def reset_fields():
     name_entry.delete(0, tk.END)
@@ -85,7 +84,6 @@ def reset_fields():
 
 def is_valid_email():
     email = email_entry.get()
-    # Pattern for VJTI college emails
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.vjti\.ac\.in$'
     return re.match(pattern, email) is not None
 
@@ -100,11 +98,9 @@ def autofill_student_data(event=None):
     """Autofill form fields when registration number matches existing student"""
     reg_no = reg_entry.get()
     
-    # Only proceed if we have a complete registration number (9 digits)
     if len(reg_no) == 9 and reg_no.isdigit():
         student = fetch_student_data(reg_no)
         if student:
-            # Update all fields with student data
             name_entry.delete(0, tk.END)
             name_entry.insert(0, student.get('name', ''))
             
@@ -117,13 +113,12 @@ def autofill_student_data(event=None):
             branch_var.set(student.get('branch', ''))
             year_var.set(student.get('year', ''))
             
-            # Trigger email focus out to set branch if email exists
             if student.get('email', ''):
                 email_event = type('Event', (), {'widget': email_entry})()
                 on_email_focus_out(email_event)
 
 def book_equipment():
-    issue_dt = datetime.strptime(issue_date_entry.get(), '%Y-%m-%d').date()
+    issue_dt = issue_date.get_date()
     return_dt = return_date.get_date()
 
     if return_dt < issue_dt:
@@ -177,7 +172,6 @@ def book_equipment():
         messagebox.showerror("Error", "All fields are required!")
         return
     
-    # Save student data if it doesn't exist
     if not students_collection.find_one({"reg_no": reg_no}):
         students_collection.insert_one({
             "reg_no": reg_no,
@@ -210,32 +204,37 @@ def open_records_page():
         messagebox.showerror("Error", f"Failed to open records: {str(e)}")
 
 def validate_numeric_input(new_value, max_length):
-    """Strict numeric validation with max length enforcement"""
-    if new_value == "":  # Allow empty for backspace/delete
+    if new_value == "":
         return True
-    if not new_value.isdigit():  # Only digits allowed
+    if not new_value.isdigit():
         return False
-    if len(new_value) > max_length:  # Strict length limit
+    if len(new_value) > max_length:
         return False
     return True
 
 def validate_mobile(new_value):
-    """Mobile number must be exactly 10 digits"""
     return validate_numeric_input(new_value, 10)
 
 def validate_registration(new_value):
-    """Registration number must be exactly 9 digits"""
     return validate_numeric_input(new_value, 9)
 
 def is_valid_mobile():
-    """Final validation - exactly 10 digits"""
     mobile = mobile_entry.get()
     return len(mobile) == 10 and mobile.isdigit()
 
 def is_valid_registration():
-    """Final validation - exactly 9 digits"""
     reg_no = reg_entry.get()
     return len(reg_no) == 9 and reg_no.isdigit()
+
+def on_email_focus_out(event):
+    """Auto-fill branch when email is entered"""
+    email = email_entry.get()
+    if email:
+        branch = extract_branch_from_email(email)
+        if branch:
+            branch_var.set(branch)
+            branch_dropdown.config(background='#e6ffe6')
+            branch_dropdown.after(1000, lambda: branch_dropdown.config(background='white'))
 
 # Main Window Setup
 root = tk.Tk()
@@ -320,7 +319,6 @@ for i, (text, var_name) in enumerate(fields):
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
-# Add binding to registration number entry to autofill when complete
 reg_entry.bind('<KeyRelease>', autofill_student_data)
 
 # Dropdown Fields
@@ -351,19 +349,6 @@ for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
     if var_name == "branch_var":
         branch_dropdown = combobox
 
-def on_email_focus_out(event):
-    """Auto-fill branch when email is entered"""
-    email = email_entry.get()
-    if email:  # Only proceed if email is not empty
-        branch = extract_branch_from_email(email)
-        if branch:
-            branch_var.set(branch)
-            # Visual feedback
-            branch_dropdown.config(background='#e6ffe6')  # Light green
-            # Reset color after 1 second
-            branch_dropdown.after(1000, lambda: branch_dropdown.config(background='white'))
-
-# Add this binding after creating your email_entry widget
 email_entry.bind('<FocusOut>', on_email_focus_out)
 
 # Date Selection
@@ -378,31 +363,32 @@ date_selection_frame.pack(fill=tk.X)
 
 today = date.today()
 
-# Issue Date
+# Create both frames first
 issue_date_frame = tk.Frame(date_selection_frame, bg="white")
 issue_date_frame.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-tk.Label(issue_date_frame, text="Issue Date:", font=MEDIUM_FONT, 
-         bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
-
-issue_date_entry = tk.Entry(
-    issue_date_frame,
-    font=SMALL_FONT,
-    width=12,
-    bg=ENTRY_BG,
-    fg=TEXT_COLOR,
-    relief=tk.SOLID,
-    borderwidth=1,
-    state='normal'
-)
-issue_date_entry.insert(0, today.strftime('%Y-%m-%d'))
-issue_date_entry.config(state='readonly')
-issue_date_entry.pack(side=tk.LEFT, padx=5)
-
-# Return Date
 return_date_frame = tk.Frame(date_selection_frame, bg="white")
 return_date_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
 
+# Populate issue date frame
+tk.Label(issue_date_frame, text="Issue Date:", font=MEDIUM_FONT, 
+         bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
+
+issue_date = DateEntry(
+    issue_date_frame,
+    width=12,
+    background=ACCENT_COLOR,
+    foreground="white",
+    borderwidth=2,
+    mindate=today,
+    font=SMALL_FONT,
+    date_pattern='yyyy-mm-dd'
+)
+issue_date.set_date(today)
+issue_date.pack(side=tk.LEFT, padx=5)
+issue_date.bind("<<DateEntrySelected>>", update_return_date)
+
+# Populate return date frame
 tk.Label(return_date_frame, text="Return Date:", font=MEDIUM_FONT, 
          bg="white", fg=TEXT_COLOR).pack(side=tk.LEFT, padx=5)
 
@@ -418,6 +404,9 @@ return_date = DateEntry(
 )
 return_date.set_date(today)
 return_date.pack(side=tk.LEFT, padx=5)
+
+# Initialize the return date limits
+update_return_date()
 
 # Buttons
 button_container = tk.Frame(main_container, bg=BG_COLOR, pady=10)

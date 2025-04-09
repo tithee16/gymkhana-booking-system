@@ -53,7 +53,7 @@ class BookingRecordsViewer:
         ).pack(side=tk.LEFT, padx=(0, 10))
         
         self.filter_var = tk.StringVar()
-        filter_options = ["All", "Active (Pending)", "Returned"]
+        filter_options = ["All", "Pending", "Returned"]
         for option in filter_options:
             tk.Radiobutton(
                 filter_frame, 
@@ -275,20 +275,22 @@ class BookingRecordsViewer:
             for record in records:
                 # Calculate days left/overdue
                 return_date_str = record.get("return_date", "")
-                days_left = ""
+                status = record.get("status", "")
                 
-                try:
-                    return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
-                    delta = (return_date - today).days
-                    if delta >= 0:
-                        days_left = f"{delta} days"
-                    else:
-                        days_left = f"Overdue {-delta} days"
-                except (ValueError, AttributeError):
-                    pass
+                if status == "Returned":
+                    days_left = "-"  # Display dash for returned equipment
+                else:
+                    try:
+                        return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+                        delta = (return_date - today).days
+                        if delta >= 0:
+                            days_left = f"{delta} days"
+                        else:
+                            days_left = f"Overdue {-delta} days"
+                    except (ValueError, AttributeError):
+                        days_left = ""
                 
                 # Determine row tag based on status
-                status = record.get("status", "")
                 tag = ""
                 if status in ["Active", "Pending"]:
                     if days_left.startswith("Overdue"):

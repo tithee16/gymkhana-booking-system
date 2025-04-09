@@ -333,7 +333,7 @@ inventory_tree = ttk.Treeview(inventory_frame,
                              show="headings",
                              yscrollcommand=inventory_scroll_y.set,
                              xscrollcommand=inventory_scroll_x.set,
-                             height=5)
+                             height=6)
 inventory_tree.pack(fill=tk.BOTH, expand=True)
 
 inventory_scroll_y.config(command=inventory_tree.yview)
@@ -416,7 +416,7 @@ bookings_tree = ttk.Treeview(bookings_frame,
                            selectmode="browse",
                            yscrollcommand=bookings_scroll_y.set,
                            xscrollcommand=bookings_scroll_x.set,
-                           height=5)
+                           height=6)
 bookings_tree.pack(fill=tk.BOTH, expand=True)
 
 bookings_scroll_y.config(command=bookings_tree.yview)
@@ -493,16 +493,6 @@ close_button = tk.Button(button_frame,
                         activebackground="#1a252f")
 close_button.pack(side=tk.LEFT, padx=10, expand=True)
 
-# Status Bar
-status_bar = tk.Label(main_frame, 
-                     text="Ready", 
-                     bd=1, 
-                     relief=tk.SUNKEN, 
-                     anchor=tk.W,
-                     font=table_font,
-                     bg=HEADER_COLOR,
-                     fg=LIGHT_TEXT)
-status_bar.pack(fill=tk.X, pady=(10, 0))
 
 # Initialize and load data
 initialize_inventory()
