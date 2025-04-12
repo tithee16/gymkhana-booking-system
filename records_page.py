@@ -262,10 +262,11 @@ class BookingRecordsViewer:
                 ]
             
             filter_value = self.filter_var.get()
-            if filter_value == "Active (Pending)":
-                query["status"] = {"$in": ["Active", "Pending"]}  # Show both Active and Pending statuses
+            if filter_value == "Pending":
+                query["status"] = "Pending"
             elif filter_value == "Returned":
                 query["status"] = "Returned"
+            # For "All", don't add any filter
 
             
             records = self.collection.find(query).sort("_id", -1)  # Newest first
