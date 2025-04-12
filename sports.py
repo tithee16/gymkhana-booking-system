@@ -71,6 +71,12 @@ def update_return_date(*args):
     if return_date.get_date() > max_return_date:
         return_date.set_date(max_return_date)
 
+global name_entry, email_entry, mobile_entry, reg_entry 
+
+branch_var = tk.StringVar()
+year_var = tk.StringVar()
+sports_var = tk.StringVar()
+
 def reset_fields():
     name_entry.delete(0, tk.END)
     email_entry.delete(0, tk.END)
@@ -319,6 +325,8 @@ for i, (text, var_name) in enumerate(fields):
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
+reg_entry = tk.Entry(root)
+reg_entry.pack()
 reg_entry.bind('<KeyRelease>', autofill_student_data)
 
 # Dropdown Fields
@@ -348,6 +356,10 @@ for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
     globals()[var_name] = var
     if var_name == "branch_var":
         branch_dropdown = combobox
+
+tk.Label(root, text="Email").pack()
+email_entry = tk.Entry(root)
+email_entry.pack()
 
 email_entry.bind('<FocusOut>', on_email_focus_out)
 
