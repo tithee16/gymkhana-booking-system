@@ -442,7 +442,7 @@ button_frame = tk.Frame(main_frame, bg=BG_COLOR)
 button_frame.pack(fill=tk.X, pady=(15, 0))
 
 return_button = tk.Button(button_frame, 
-                        text="Return Selected Equipment", 
+                        text="Return Equipment", 
                         command=return_equipment, 
                         bg=DANGER_COLOR, 
                         fg=LIGHT_TEXT, 

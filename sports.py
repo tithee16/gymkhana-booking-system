@@ -145,7 +145,7 @@ def book_equipment():
         return
         
     if not is_valid_email():
-        messagebox.showerror("Error", "Email must be a valid VJTI email (username@branch.vjti.ac.in)")
+        messagebox.showerror("Error", "Email must be a valid VJTI email")
         email_entry.focus_set()
         return
     
@@ -326,8 +326,6 @@ for i, (text, var_name) in enumerate(fields):
     entry.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
     globals()[var_name] = entry
 
-reg_entry = tk.Entry(root)
-reg_entry.pack()
 reg_entry.bind('<KeyRelease>', autofill_student_data)
 
 # Dropdown Fields
@@ -357,10 +355,6 @@ for i, (text, var_name, values) in enumerate(dropdowns, start=len(fields)):
     globals()[var_name] = var
     if var_name == "branch_var":
         branch_dropdown = combobox
-
-tk.Label(root, text="Email").pack()
-email_entry = tk.Entry(root)
-email_entry.pack()
 
 email_entry.bind('<FocusOut>', on_email_focus_out)
 
