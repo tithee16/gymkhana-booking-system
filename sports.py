@@ -73,11 +73,6 @@ def update_return_date(*args):
 
 global name_entry, email_entry, mobile_entry, reg_entry 
 
-root = tk.Tk()
-branch_var = tk.StringVar()
-year_var = tk.StringVar()
-sports_var = tk.StringVar()
-
 def reset_fields():
     name_entry.delete(0, tk.END)
     email_entry.delete(0, tk.END)
@@ -244,6 +239,11 @@ def on_email_focus_out(event):
             branch_dropdown.after(1000, lambda: branch_dropdown.config(background='white'))
 
 # Main Window Setup
+root = tk.Tk()
+
+branch_var = tk.StringVar()
+year_var = tk.StringVar()
+sports_var = tk.StringVar()
 
 root.title("Sports Equipment Booking System")
 root.geometry("600x750")
