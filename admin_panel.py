@@ -6,7 +6,6 @@ from tkinter import ttk, messagebox
 from pymongo import MongoClient
 from tkinter.font import Font
 
-# Custom color scheme
 BG_COLOR = "#f0f2f5"
 HEADER_COLOR = "#2c3e50"
 BUTTON_COLOR = "#3498db"
