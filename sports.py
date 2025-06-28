@@ -440,10 +440,5 @@ records_button = tk.Button(action_buttons_frame, text="VIEW RECORDS", command=op
                           activebackground="#3498db", activeforeground="white")
 records_button.pack(side=tk.RIGHT, padx=10, expand=True)
 
-# Footer
-footer_frame = tk.Frame(root, bg=HEADER_COLOR, height=40)
-footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
-tk.Label(footer_frame, text="Sports Equipment Booking System © 2023", 
-         bg=HEADER_COLOR, fg="white", font=("Segoe UI", 9)).pack(pady=10)
 
 root.mainloop()
